@@ -125,6 +125,16 @@ header {
     100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
 }
 
+.pulse {
+    animation: simple-pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes simple-pulse {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+}
+
 /* NAVIGATION BUTTONS */
 .nav-btn {
     display: flex;

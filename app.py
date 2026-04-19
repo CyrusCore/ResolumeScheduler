@@ -191,6 +191,40 @@ def run_scheduler():
         schedule.run_pending()
         time.sleep(1)
 
+@app.route('/api/open-file-dialog', methods=['GET'])
+def open_file_dialog():
+    """Membuka dialog file native melalui pywebview."""
+    if not webview.windows:
+        return jsonify({"success": False, "error": "No window found"}), 500
+    
+    file_types = ('Video Files (*.mp4;*.mkv;*.mov;*.avi;*.m4v)', 'All files (*.*)')
+    # Menggunakan window pertama yang aktif
+    result = webview.windows[0].create_file_dialog(webview.OPEN_DIALOG, allow_multiple=False, file_types=file_types)
+    
+    if result:
+        # result adalah tuple dari path yang dipilih
+        path = result[0] if isinstance(result, (list, tuple)) else result
+        return jsonify({"success": True, "path": path})
+    return jsonify({"success": False, "path": None})
+
+@app.route('/api/media-health', methods=['POST'])
+def check_media_health():
+    """Mengecek keberadaan dan status file di disk."""
+    try:
+        paths = request.json.get('paths', [])
+        results = {}
+        for path in paths:
+            if not path: continue
+            if not os.path.exists(path):
+                results[path] = "missing"
+            elif os.path.getsize(path) == 0:
+                results[path] = "corrupt"
+            else:
+                results[path] = "ok"
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/status', methods=['GET'])
 def get_status():
     return jsonify({

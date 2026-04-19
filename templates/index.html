@@ -61,11 +61,12 @@
                     <table id="schedule-table">
                         <thead>
                             <tr>
-                                <th style="width: 20%;">Time</th>
-                                <th style="text-align: center; width: 15%;">Layer</th>
-                                <th style="text-align: center; width: 15%;">Col</th>
-                                <th style="text-align: center; width: 15%;">Rpt</th>
-                                <th style="text-align: right; width: 35%;">Action</th>
+                                <th style="width: 18%;">Time</th>
+                                <th style="text-align: center; width: 12%;">Layer</th>
+                                <th style="text-align: center; width: 12%;">Col</th>
+                                <th style="text-align: center; width: 12%;">Rpt</th>
+                                <th style="text-align: center; width: 12%;">Health</th>
+                                <th style="text-align: right; width: 34%;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="schedule-list">
@@ -108,6 +109,16 @@
                     <div class="input-group">
                         <label>Column Index</label>
                         <input type="number" id="input-column" min="1" placeholder="e.g. 2" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Linked Media File (Optional)</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="input-file-path" placeholder="C:\Path\To\Video.mp4" readonly style="flex-grow: 1; cursor: default;">
+                            <button type="button" id="btn-browse-file" class="nav-btn btn-ghost" style="padding: 10px; border-radius: 10px; border: 1px solid var(--glass-border);">
+                                &#x1F4C2;
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="input-group-row">
@@ -230,6 +241,7 @@
     <script>
         let currentSchedules = [];
         let isPaused = false;
+        let mediaHealthMap = {};
 
         // ==================
         // THEME SYSTEM
@@ -303,6 +315,7 @@
                 const res = await fetch('/api/schedule');
                 currentSchedules = await res.json();
                 renderTable();
+                checkMediaHealth(); // Check health after fetching
             } catch (e) { }
         }
 
@@ -410,6 +423,31 @@
             } catch (e) { }
         }
 
+        async function checkMediaHealth() {
+            const paths = currentSchedules.map(s => s.file_path).filter(p => !!p);
+            if (paths.length === 0) return;
+
+            try {
+                const res = await fetch('/api/media-health', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paths })
+                });
+                mediaHealthMap = await res.json();
+                renderTable();
+            } catch (e) { }
+        }
+
+        async function browseFile() {
+            try {
+                const res = await fetch('/api/open-file-dialog');
+                const data = await res.json();
+                if (data.success && data.path) {
+                    document.getElementById('input-file-path').value = data.path;
+                }
+            } catch (e) { }
+        }
+
         function renderTable() {
             const tbody = document.getElementById('schedule-list');
             tbody.innerHTML = '';
@@ -421,11 +459,27 @@
                 const repeatIcon = item.repeat ? '&#x21BB;' : '&#x2715;';
                 const repeatColor = item.repeat ? 'var(--accent)' : 'var(--text-muted)';
                 
+                // Health Indicator
+                let healthHTML = '<span style="color: var(--text-muted); opacity: 0.3;">-</span>';
+                if (item.file_path) {
+                    const status = mediaHealthMap[item.file_path] || 'checking';
+                    if (status === 'ok') {
+                        healthHTML = '<span style="color: var(--success);" title="File Healthy">&#x1F6E1;</span>';
+                    } else if (status === 'missing') {
+                        healthHTML = '<span style="color: #ef4444;" title="File Missing!">&#x26A0;</span>';
+                    } else if (status === 'corrupt') {
+                        healthHTML = '<span style="color: #fb923c;" title="File Empty/Corrupt">&#x26A0;</span>';
+                    } else {
+                        healthHTML = '<span class="pulse" style="color: var(--text-muted);">&#x1F6E1;</span>';
+                    }
+                }
+
                 tr.innerHTML = `
                     <td class="col-time">${item.time}</td>
                     <td style="text-align: center; color: var(--accent); font-weight: 600;">${item.layer}</td>
                     <td style="text-align: center; color: var(--accent); font-weight: 600;">${item.column}</td>
                     <td style="text-align: center; color: ${repeatColor}; font-size: 1.1rem; font-weight: bold;">${repeatIcon}</td>
+                    <td style="text-align: center; font-size: 1.2rem;">${healthHTML}</td>
                     <td style="text-align: right; display: flex; gap: 6px; justify-content: flex-end; align-items: center; padding-top: 12px;">
                         <button class="btn-delete" style="color: var(--success); border-color: rgba(52, 211, 153, 0.2);" onclick="triggerManual(${item.layer}, ${item.column})" title="Trigger Now">&#x25B6;</button>
                         <button class="btn-delete" onclick="removeSchedule(${index})" title="Delete Schedule">Del</button>
@@ -481,6 +535,7 @@
             const layer = parseInt(document.getElementById('input-layer').value);
             const column = parseInt(document.getElementById('input-column').value);
             const repeat = document.getElementById('input-repeat').checked;
+            const file_path = document.getElementById('input-file-path').value;
             
             const hasNext = document.getElementById('toggle-duration').checked;
             let duration = 0;
@@ -494,13 +549,14 @@
             }
 
             currentSchedules.push({ 
-                time, layer, column, repeat, 
+                time, layer, column, repeat, file_path,
                 duration, next_layer, next_column 
             });
             
             renderTable();
             closeAddModal();
             autoSave();
+            checkMediaHealth();
         });
 
         // Duration toggle logic
@@ -514,6 +570,7 @@
         });
 
         document.getElementById('btn-pause-toggle').addEventListener('click', togglePause);
+        document.getElementById('btn-browse-file').addEventListener('click', browseFile);
 
         // ------------------
         // MODAL SETTINGS
@@ -568,7 +625,12 @@
         setInterval(() => {
             checkConnection();
             fetchSchedules();
-        }, 3000);
+            checkMediaHealth();
+        }, 30000); // 30s for full updates
+        
+        setInterval(() => {
+            checkConnection(); // Fast connection check
+        }, 5000);
     </script>
 </body>
 
