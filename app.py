@@ -12,7 +12,7 @@ from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 
 def get_base_path():
-    """Mendapatkan absolute path resource, perlu saat dijadikan EXE dengan PyInstaller."""
+    """Get absolute path to resource, works for dev and for PyInstaller."""
     if hasattr(sys, '_MEIPASS'):
         return sys._MEIPASS
     return os.path.dirname(os.path.abspath(__file__))
@@ -23,9 +23,9 @@ app = Flask(__name__,
             static_folder=os.path.join(base_path, 'static'))
 
 # ==========================================
-# KONFIGURASI VERSI & GITHUB REPO
+# VERSION & GITHUB CONFIG
 # ==========================================
-APP_VERSION = "1.7.1"
+APP_VERSION = "1.7.2"
 # Format Repo Target: "username/repository-name"
 GITHUB_REPO = "CyrusCore/ResolumeScheduler"
 
@@ -174,16 +174,21 @@ def trigger_clip(layer_index, clip_index, target_time=None, item_id=None, is_fol
             
             if is_match and not found_item:
                 found_item = item
-                # Jika repeat atau ada 'next clip' yang BELUM dipicu (is_follow_up=False)
-                # maka simpan kembali agar tetap tampil di UI
                 has_chain = item.get('next_layer') and item.get('next_column')
                 
+                # Logic Persistence:
                 if item.get('repeat', False):
+                    # Repeating tasks never complete
+                    item['completed'] = False
                     new_data.append(item)
                 elif has_chain and not is_follow_up:
-                    # Jangan hapus jika ini trigger pertama dari sebuah chain
+                    # Chained task: keep in upcoming during the first trigger
+                    item['completed'] = False
                     new_data.append(item)
-                # Jika is_follow_up=True dan tidak repeat, otomatis terhapus (tidak masuk new_data)
+                else:
+                    # Standalone task OR the follow-up of a chain has finished
+                    item['completed'] = True
+                    new_data.append(item)
             else:
                 new_data.append(item)
                 
@@ -209,7 +214,7 @@ def trigger_clip(layer_index, clip_index, target_time=None, item_id=None, is_fol
     return None
 
 def load_schedule_into_memory():
-    """Memuat jadwal dari schedule.json kembali ke instance schedule Python."""
+    """Load schedule from schedule.json back into the Python schedule instance."""
     schedule.clear()
     
     if not os.path.exists(SCHEDULE_FILE):
@@ -236,10 +241,10 @@ def run_scheduler():
         time.sleep(1)
 
 def get_local_ip():
-    """Mendapatkan alamat IP lokal dari mesin ini."""
+    """Get the local IP address of this machine."""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # Mencoba connect ke server luar (tidak benar-benar connect) untuk melihat IP lokal mana yang digunakan
+        # Try to connect to an external server (doesn't actually connect) to see which local IP is used
         s.connect(('8.8.8.8', 80))
         ip = s.getsockname()[0]
         s.close()
@@ -249,7 +254,7 @@ def get_local_ip():
 
 @app.route('/api/network-info', methods=['GET'])
 def get_network_info():
-    """Mengembalikan info URL untuk akses dashboard dari perangkat lain."""
+    """Returns URL information for accessing the dashboard from other devices."""
     ip = get_local_ip()
     return jsonify({
         "local_ip": ip,
@@ -259,7 +264,7 @@ def get_network_info():
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
-    """Mengembalikan status koneksi agregat dari semua server."""
+    """Returns aggregate connection status for all servers."""
     settings = load_settings()
     servers = settings.get("servers", [])
     
@@ -346,7 +351,7 @@ def manage_settings():
 
 @app.route('/api/app-version', methods=['GET'])
 def get_app_version():
-    """Mengembalikan versi aplikasi saat ini."""
+    """Returns current app version."""
     return jsonify({"version": APP_VERSION.strip()})
 
 @app.route('/api/check-update', methods=['GET'])
@@ -374,8 +379,8 @@ def check_update():
         return jsonify({"update_available": False, "error": str(e)})
 
 def start_flask():
-    """Menjalankan server Flask agar bisa diakses dari jaringan lokal."""
-    # use_reloader=False sangat penting agar tidak conflict dengan thread lain
+    """Runs the Flask server to allow access from the local network."""
+    # use_reloader=False is crucial to avoid conflicts with other threads
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
 if __name__ == '__main__':

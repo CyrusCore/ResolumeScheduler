@@ -593,3 +593,55 @@ input:focus {
         overflow-y: visible; /* Hid scrollbar */
     }
 }
+
+/* Custom Confirmation Modal Styles */
+#confirm-modal .modal-box {
+    max-width: 380px;
+    text-align: center;
+    border-color: var(--accent-glow);
+}
+
+#confirm-modal h2 {
+    color: #ef4444;
+}
+
+#confirm-modal .confirm-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+#confirm-modal .btn-cancel {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+#confirm-modal .btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+}
+
+#confirm-modal .btn-confirm {
+    background: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: white;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+#confirm-modal .btn-confirm:hover {
+    background: #dc2626;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+    transform: translateY(-1px);
+}

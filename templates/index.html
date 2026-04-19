@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -52,9 +52,10 @@
         </header>
 
         <section class="main-content">
+            <!-- UPCOMING SECTION -->
             <div class="glass-panel">
                 <div class="section-header">
-                    <h2>Current Scheduled Clips</h2>
+                    <h2>Upcoming Schedules</h2>
                 </div>
 
                 <div class="table-wrapper">
@@ -69,7 +70,32 @@
                             </tr>
                         </thead>
                         <tbody id="schedule-list">
-                            <!-- Data -->
+                            <!-- Upcoming Data -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- HISTORY SECTION -->
+            <div class="glass-panel" style="margin-top: 2rem; border-color: rgba(255, 255, 255, 0.05); background: rgba(0, 0, 0, 0.2);">
+                <div class="section-header" style="justify-content: space-between;">
+                    <h2 style="font-size: 1.1rem; color: var(--text-muted);">Recently Executed Schedules</h2>
+                    <button id="btn-clear-history" class="btn-ghost" style="font-size: 0.75rem; padding: 4px 10px; color: #ef4444; border-color: rgba(239, 68, 68, 0.2);">Clear History</button>
+                </div>
+
+                <div class="table-wrapper">
+                    <table id="history-table" style="opacity: 0.7;">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">Time</th>
+                                <th style="text-align: center; width: 18%;">Layer</th>
+                                <th style="text-align: center; width: 18%;">Col</th>
+                                <th style="text-align: center; width: 18%;">Rpt</th>
+                                <th style="text-align: right; width: 21%;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-list">
+                            <!-- History Data -->
                         </tbody>
                     </table>
                 </div>
@@ -263,26 +289,47 @@
             <div class="modal-body" style="max-height: 480px; overflow-y: auto; padding-right: 15px;">
                 <div class="changelog-item" style="margin-bottom: 24px;">
                     <h3 style="color: var(--accent); font-size: 1.15rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                        v1.7.0 <span style="font-size: 0.75rem; background: var(--accent-glow); padding: 2px 8px; border-radius: 20px;">Current</span>
+                        v1.7.2 <span style="font-size: 0.75rem; background: var(--accent-glow); padding: 2px 8px; border-radius: 20px;">Current</span>
                     </h3>
                     <ul style="padding-left: 18px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.7; list-style-type: none;">
-                        <li style="margin-bottom: 8px;">🚀 <strong>Refactored Chaining</strong>: Precise manual H:M:S duration input for perfect timing gaps.</li>
-                        <li style="margin-bottom: 8px;">👁️ <strong>Task Persistence</strong>: Chained tasks now stay visible in the list until the full sequence completes.</li>
-                        <li style="margin-bottom: 8px;">📡 <strong>Multi-Server Sync</strong>: Broadcast mode for physical redundancy (Main & Backup PCs).</li>
-                        <li style="margin-bottom: 8px;">📱 <strong>Enhanced Mobile Access</strong>: Simplified dashboard URL and mobile-friendly table layout.</li>
-                        <li style="margin-bottom: 8px;">🎨 <strong>UI Polish</strong>: Unified header controls and cleaner settings modal without scrollbars.</li>
+                        <li style="margin-bottom: 8px;">🌍 <strong>English Localization</strong>: Fully translated UI and backend logs for global consistency.</li>
+                        <li style="margin-bottom: 8px;">🛡️ <strong>Custom Confirm Modal</strong>: Replaced browser dialogs with a premium glassmorphic modal.</li>
+                        <li style="margin-bottom: 8px;">🕒 <strong>Schedule History</strong>: Tasks now migrate to "Executed Schedules" section instead of being deleted.</li>
+                        <li style="margin-bottom: 8px;">⚙️ <strong>H:M:S Precision</strong>: High-accuracy manual duration control for chained tasks.</li>
                     </ul>
                 </div>
-                <div class="changelog-item" style="opacity: 0.6;">
-                    <h3 style="color: var(--text-main); font-size: 1rem; margin-bottom: 8px;">v1.6.x</h3>
+                <div class="changelog-item" style="margin-bottom: 24px; opacity: 0.6;">
+                    <h3 style="color: var(--text-main); font-size: 1.0rem; margin-bottom: 8px;">v1.7.1</h3>
                     <ul style="padding-left: 18px; color: var(--text-muted); font-size: 0.85rem; line-height: 1.6;">
-                        <li>Initial Multi-Server implementation.</li>
-                        <li>Persistent theme settings and auto-update checks.</li>
+                        <li>Stability fixes and initial task persistence refactor.</li>
+                    </ul>
+                </div>
+                <div class="changelog-item" style="opacity: 0.4;">
+                    <h3 style="color: var(--text-main); font-size: 0.9rem; margin-bottom: 8px;">v1.7.0</h3>
+                    <ul style="padding-left: 18px; color: var(--text-muted); font-size: 0.8rem; line-height: 1.6;">
+                        <li>Multi-Server Sync (Broadcast Mode).</li>
+                        <li>Precise manual H:M:S chaining.</li>
                     </ul>
                 </div>
             </div>
             <div class="modal-footer" style="margin-top: 15px; border-top: 1px solid var(--glass-border); padding-top: 15px;">
                 <button onclick="document.getElementById('btn-close-changelog').click()" class="btn-submit" style="width: 100%; opacity: 0.8;">Dismiss</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM CONFIRM MODAL -->
+    <div id="confirm-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2 id="confirm-title" style="margin: 0;">Confirm Action</h2>
+            </div>
+            <div class="modal-body" style="padding: 20px 0;">
+                <p id="confirm-message" style="color: var(--text-muted); line-height: 1.5; margin: 0;">Are you sure you want to proceed?</p>
+                <div class="confirm-actions">
+                    <button id="btn-confirm-cancel" class="btn-cancel">Cancel</button>
+                    <button id="btn-confirm-proceed" class="btn-confirm">Proceed</button>
+                </div>
             </div>
         </div>
     </div>
@@ -495,8 +542,10 @@
         }
 
         function renderTable() {
-            const tbody = document.getElementById('schedule-list');
-            tbody.innerHTML = '';
+            const upcomingBody = document.getElementById('schedule-list');
+            const historyBody = document.getElementById('history-list');
+            upcomingBody.innerHTML = '';
+            historyBody.innerHTML = '';
 
             currentSchedules.sort((a, b) => a.time.localeCompare(b.time));
 
@@ -508,6 +557,8 @@
                 const hasNext = item.next_layer && item.next_column;
                 const durationText = hasNext ? formatDuration(item.duration) : '-';
 
+                const isCompleted = item.completed === true;
+
                 tr.innerHTML = `
                     <td class="col-time" data-label="Time">
                         ${item.time}
@@ -517,18 +568,29 @@
                     <td style="text-align: center; color: var(--accent); font-weight: 600;" data-label="Column">${item.column}</td>
                     <td style="text-align: center; color: ${repeatColor}; font-size: 1.1rem; font-weight: bold;" data-label="Repeat">${repeatIcon}</td>
                     <td style="text-align: right; display: flex; gap: 6px; justify-content: flex-end; align-items: center; padding-top: 12px;" data-label="Action">
-                        <button class="btn-delete" style="color: var(--success); border-color: rgba(52, 211, 153, 0.2);" onclick="triggerManual(${item.layer}, ${item.column})" title="Trigger Now">&#x25B6;</button>
+                        ${!isCompleted ? `<button class="btn-delete" style="color: var(--success); border-color: rgba(52, 211, 153, 0.2);" onclick="triggerManual(${item.layer}, ${item.column})" title="Trigger Now">&#x25B6;</button>` : ''}
                         <button class="btn-delete" onclick="removeSchedule(${index})" title="Delete Schedule">Del</button>
                     </td>
                 `;
-                tbody.appendChild(tr);
+
+                if (isCompleted) {
+                    historyBody.appendChild(tr);
+                } else {
+                    upcomingBody.appendChild(tr);
+                }
             });
         }
 
         async function removeSchedule(index) {
-            currentSchedules.splice(index, 1);
-            renderTable();
-            await autoSave();
+            const confirmed = await showConfirm(
+                "Delete Schedule", 
+                "Are you sure you want to remove this scheduled clip? This action cannot be undone."
+            );
+            if (confirmed) {
+                currentSchedules.splice(index, 1);
+                renderTable();
+                await autoSave();
+            }
         }
 
         async function autoSave() {
@@ -589,7 +651,8 @@
 
             currentSchedules.push({ 
                 time, layer, column, repeat,
-                duration, next_layer, next_column 
+                duration, next_layer, next_column,
+                completed: false
             });
             
             renderTable();
@@ -604,6 +667,18 @@
                 fields.classList.remove('hidden');
             } else {
                 fields.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('btn-clear-history').addEventListener('click', async () => {
+            const confirmed = await showConfirm(
+                "Clear History",
+                "Do you want to permanently delete all recently executed schedules?"
+            );
+            if (confirmed) {
+                currentSchedules = currentSchedules.filter(item => !item.completed);
+                renderTable();
+                await autoSave();
             }
         });
 
@@ -694,7 +769,30 @@
             setTimeout(() => { modal.classList.add('hidden'); }, 300);
         });
 
-        async function saveSettings() {
+        // ------------------
+        // CUSTOM CONFIRM SYSTEM
+        // ------------------
+        let confirmCallback = null;
+
+        function showConfirm(title, message) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirm-modal');
+                document.getElementById('confirm-title').innerText = title;
+                document.getElementById('confirm-message').innerText = message;
+                
+                modal.classList.remove('hidden');
+                setTimeout(() => { modal.style.opacity = '1'; }, 10);
+
+                const cleanup = (value) => {
+                    modal.style.opacity = '0';
+                    setTimeout(() => { modal.classList.add('hidden'); }, 300);
+                    resolve(value);
+                };
+
+                document.getElementById('btn-confirm-proceed').onclick = () => cleanup(true);
+                document.getElementById('btn-confirm-cancel').onclick = () => cleanup(false);
+            });
+        }
             const autostart = document.getElementById('setting-autostart').checked;
             const btn = document.getElementById('btn-save-settings');
             const ogText = btn.innerText;
