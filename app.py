@@ -24,7 +24,7 @@ app = Flask(__name__,
 # ==========================================
 # KONFIGURASI VERSI & GITHUB REPO
 # ==========================================
-APP_VERSION = "1.5.1"
+APP_VERSION = "1.5.4"
 # Format Repo Target: "username/repository-name"
 GITHUB_REPO = "CyrusCore/ResolumeScheduler"
 
