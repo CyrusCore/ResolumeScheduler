@@ -793,6 +793,8 @@
                 document.getElementById('btn-confirm-cancel').onclick = () => cleanup(false);
             });
         }
+
+        async function saveSettings() {
             const autostart = document.getElementById('setting-autostart').checked;
             const btn = document.getElementById('btn-save-settings');
             const ogText = btn.innerText;
