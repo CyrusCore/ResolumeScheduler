@@ -15,8 +15,8 @@
         <!-- UPDATE NOTIFICATION BANNER -->
         <div id="update-banner" class="hidden" style="background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent); padding: 14px 22px; border-radius: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15); transition: opacity 0.5s ease;">
             <div>
-                <strong style="color: var(--accent); display: block; margin-bottom: 4px; font-size: 1.05rem;">Update Available: v<span id="update-version"></span></strong>
-                <span style="font-size: 0.85rem; color: var(--text-main);">A new magical version of Resolume Automator is ready to download!</span>
+                <strong style="color: var(--accent); display: block; margin-bottom: 4px; font-size: 1.05rem;">&#x2728; Update Available: v<span id="update-version"></span></strong>
+                <span style="font-size: 0.85rem; color: var(--text-main);">A new version of Resolume Automator is ready!</span>
             </div>
             <a id="update-url" href="#" target="_blank" class="nav-btn btn-accent" style="text-decoration: none; padding: 8px 18px; font-size: 0.9rem;">Download</a>
         </div>
@@ -197,11 +197,12 @@
             try {
                 const res = await fetch('/api/check-update');
                 const data = await res.json();
-                if (data.update_available) {
+                // Only show banner if update_available AND version string is valid
+                if (data.update_available && data.latest_version && data.latest_version.trim() !== '') {
                     const banner = document.getElementById('update-banner');
                     banner.classList.remove('hidden');
                     document.getElementById('update-version').innerText = data.latest_version;
-                    document.getElementById('update-url').href = data.url;
+                    if (data.url) document.getElementById('update-url').href = data.url;
                 }
             } catch (e) { }
         }
