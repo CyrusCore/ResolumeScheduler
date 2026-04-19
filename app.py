@@ -6,6 +6,7 @@ import threading
 import sys
 import os
 import webview
+import socket
 import winreg as reg
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify
@@ -24,7 +25,7 @@ app = Flask(__name__,
 # ==========================================
 # KONFIGURASI VERSI & GITHUB REPO
 # ==========================================
-APP_VERSION = "1.6.1"
+APP_VERSION = "1.7.0"
 # Format Repo Target: "username/repository-name"
 GITHUB_REPO = "CyrusCore/ResolumeScheduler"
 
@@ -40,21 +41,38 @@ SCHEDULE_FILE = os.path.join(application_path, 'schedule.json')
 SETTINGS_FILE = os.path.join(application_path, 'settings.json')
 
 def load_settings():
-    """Membaca settings resolume dari file."""
+    """Membaca settings resolume dari file dengan dukungan Multi-Server Sync."""
+    default_server = {"ip": "127.0.0.1", "port": "8080", "name": "Main", "enabled": True}
+    default_settings = {
+        "servers": [default_server], 
+        "autostart": False, 
+        "theme": "blue", 
+        "paused": False
+    }
+
     if not os.path.exists(SETTINGS_FILE):
-        default_settings = {"ip": "127.0.0.1", "port": "8080", "autostart": False, "theme": "blue", "paused": False}
         with open(SETTINGS_FILE, 'w') as f:
-            json.dump(default_settings, f)
+            json.dump(default_settings, f, indent=4)
         return default_settings
         
     try:
         with open(SETTINGS_FILE, 'r') as f:
             data = json.load(f)
+            # Migrasi dari single IP/Port ke list Servers
+            if "servers" not in data:
+                old_ip = data.get("ip", "127.0.0.1")
+                old_port = data.get("port", "8080")
+                data["servers"] = [{"ip": old_ip, "port": old_port, "name": "Main", "enabled": True}]
+                if "ip" in data: del data["ip"]
+                if "port" in data: del data["port"]
+            
             if "autostart" not in data: data["autostart"] = False
             if "paused" not in data: data["paused"] = False
+            if "theme" not in data: data["theme"] = "blue"
             return data
-    except:
-        return {"ip": "127.0.0.1", "port": "8080", "autostart": False}
+    except Exception as e:
+        print(f"Error loading settings: {e}")
+        return default_settings
 
 def set_autostart(enable=True):
     """Mendaftarkan atau menghapus shortcut startup Windows via Registry"""
@@ -78,46 +96,88 @@ def set_autostart(enable=True):
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ERR Toggling Auto-Start: {e}")
 
-def get_base_url():
-    """Mengembalikan URL target dinamis berdasarkan file settings API."""
-    settings = load_settings()
-    ip = settings.get("ip", "127.0.0.1")
-    port = settings.get("port", "8080")
-    return f"http://{ip}:{port}/api/v1"
-
-# Global health status
-resolume_health = {"status": "disconnected", "last_check": 0}
+# Global health status map: { "ip:port": "connected" }
+resolume_health = {}
 
 def heartbeat_worker():
-    """Thread untuk mengecek koneksi Resolume secara berkala."""
+    """Thread untuk mengecek koneksi semua server Resolume secara berkala."""
     global resolume_health
     while True:
-        try:
-            target = f"{get_base_url()}/product"
-            response = requests.get(target, timeout=2)
-            if response.status_code == 200:
-                resolume_health = {"status": "connected", "last_check": time.time()}
-            else:
-                resolume_health = {"status": "disconnected", "last_check": time.time()}
-        except:
-            resolume_health = {"status": "disconnected", "last_check": time.time()}
+        settings = load_settings()
+        servers = settings.get("servers", [])
+        new_health = {}
+        
+        for srv in servers:
+            key = f"{srv['ip']}:{srv['port']}"
+            if not srv.get("enabled", True):
+                new_health[key] = "disabled"
+                continue
+                
+            try:
+                target = f"http://{srv['ip']}:{srv['port']}/api/v1/product"
+                response = requests.get(target, timeout=1.5)
+                if response.status_code == 200:
+                    new_health[key] = "connected"
+                else:
+                    new_health[key] = "disconnected"
+            except:
+                new_health[key] = "disconnected"
+        
+        resolume_health = new_health
         time.sleep(5)
 
+def fetch_clip_duration(layer_index, clip_index):
+    """Mendapatkan durasi klip (dalam detik) dari metadata Resolume API."""
+    settings = load_settings()
+    servers = settings.get("servers", [])
+    
+    # Cari server pertama yang aktif/online
+    for srv in servers:
+        if not srv.get("enabled", True): continue
+        try:
+            url = f"http://{srv['ip']}:{srv['port']}/api/v1/composition/layers/{layer_index}/clips/{clip_index}"
+            response = requests.get(url, timeout=2)
+            if response.status_code == 200:
+                data = response.json()
+                # Mencari durasi di dalam objek transport
+                transport = data.get("transport", {})
+                duration_obj = transport.get("duration", {})
+                duration = duration_obj.get("value")
+                
+                if duration and float(duration) > 0:
+                    return float(duration)
+        except:
+            continue
+    return None
+
 def trigger_clip(layer_index, clip_index, target_time=None, item_id=None, is_follow_up=False):
-    """Memicu klip spesifik di Resolume secara terprogram."""
+    """Memicu klip ke SEMUA server Resolume (Broadcast Sync)."""
     settings = load_settings()
     if settings.get("paused", False) and not is_follow_up:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] SKIP TRIGGER (Paused) -> Layer {layer_index} Clip {clip_index}")
         return
         
-    endpoint = f"{get_base_url()}/composition/layers/{layer_index}/clips/{clip_index}/connect"
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] TRIGGER -> {endpoint}")
+    servers = settings.get("servers", [])
     
-    try:
-        requests.post(endpoint, timeout=4)
-    except requests.exceptions.RequestException as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ERROR Triggering Resolume: {e}")
-        return # Jangan cancel job kalau gagal, mungkin mau coba lagi? Tapi kita skip aja dulu.
+    def send_request(srv):
+        if not srv.get("enabled", True): return
+        endpoint = f"http://{srv['ip']}:{srv['port']}/api/v1/composition/layers/{layer_index}/clips/{clip_index}/connect"
+        try:
+            requests.post(endpoint, timeout=3)
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] SUCCESS -> {srv['name']} ({srv['ip']})")
+        except Exception as e:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] FAILED -> {srv['name']} ({srv['ip']}): {e}")
+
+    # Broadcast ke semua server secara paralel menggunakan threads
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] BROADCAST TRIGGER -> Layer {layer_index} Clip {clip_index}")
+    threads = []
+    for srv in servers:
+        t = threading.Thread(target=send_request, args=(srv,))
+        t.start()
+        threads.append(t)
+    
+    # Tunggu sebentar (optional) atau biarkan fire & forget
+    # Di sini kita tidak menunggu .join() agar tidak memblock scheduler chính.
 
     # Cari data jadwal untuk handling duration/repeat
     try:
@@ -147,13 +207,29 @@ def trigger_clip(layer_index, clip_index, target_time=None, item_id=None, is_fol
             json.dump(new_data, f, indent=4)
             
         # Handling sub-sequent trigger (Duration)
-        if found_item and found_item.get('duration') and int(found_item['duration']) > 0:
+        # Jika duration == 0, itu berarti "Auto Metadata Sync"
+        duration_val = found_item.get('duration')
+        if found_item and (duration_val is not None):
             next_l = found_item.get('next_layer')
             next_c = found_item.get('next_column')
-            duration_sec = int(found_item['duration']) * 60
             
             if next_l and next_c:
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] QUEUED -> Next Clip in {found_item['duration']} min")
+                duration_sec = 0
+                if float(duration_val) > 0:
+                    # Manual duration (minutes to seconds)
+                    duration_sec = int(duration_val) * 60
+                else:
+                    # Auto duration from metadata
+                    print(f"[{datetime.now().strftime('%H:%M:%S')}] AUTO-SYNC -> Fetching duration for Layer {layer_index} Clip {clip_index}...")
+                    detected = fetch_clip_duration(layer_index, clip_index)
+                    if detected:
+                        duration_sec = detected
+                        print(f"[{datetime.now().strftime('%H:%M:%S')}] DETECTED -> {duration_sec:.2f} seconds")
+                    else:
+                        print(f"[{datetime.now().strftime('%H:%M:%S')}] WARNING -> Could not detect duration. Defaulting to 1s.")
+                        duration_sec = 1 # Fallback safety
+                
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] QUEUED -> Next Clip in {duration_sec:.1f}s")
                 threading.Timer(duration_sec, trigger_clip, args=[next_l, next_c, None, None, True]).start()
 
     except Exception as e:
@@ -191,45 +267,48 @@ def run_scheduler():
         schedule.run_pending()
         time.sleep(1)
 
-@app.route('/api/open-file-dialog', methods=['GET'])
-def open_file_dialog():
-    """Membuka dialog file native melalui pywebview."""
-    if not webview.windows:
-        return jsonify({"success": False, "error": "No window found"}), 500
-    
-    file_types = ('Video Files (*.mp4;*.mkv;*.mov;*.avi;*.m4v)', 'All files (*.*)')
-    # Menggunakan window pertama yang aktif
-    result = webview.windows[0].create_file_dialog(webview.OPEN_DIALOG, allow_multiple=False, file_types=file_types)
-    
-    if result:
-        # result adalah tuple dari path yang dipilih
-        path = result[0] if isinstance(result, (list, tuple)) else result
-        return jsonify({"success": True, "path": path})
-    return jsonify({"success": False, "path": None})
-
-@app.route('/api/media-health', methods=['POST'])
-def check_media_health():
-    """Mengecek keberadaan dan status file di disk."""
+def get_local_ip():
+    """Mendapatkan alamat IP lokal dari mesin ini."""
     try:
-        paths = request.json.get('paths', [])
-        results = {}
-        for path in paths:
-            if not path: continue
-            if not os.path.exists(path):
-                results[path] = "missing"
-            elif os.path.getsize(path) == 0:
-                results[path] = "corrupt"
-            else:
-                results[path] = "ok"
-        return jsonify(results)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # Mencoba connect ke server luar (tidak benar-benar connect) untuk melihat IP lokal mana yang digunakan
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except:
+        return '127.0.0.1'
+
+@app.route('/api/network-info', methods=['GET'])
+def get_network_info():
+    """Mengembalikan info URL untuk akses dashboard dari perangkat lain."""
+    ip = get_local_ip()
+    return jsonify({
+        "local_ip": ip,
+        "port": 5000,
+        "full_url": f"http://{ip}:5000"
+    })
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
+    """Mengembalikan status koneksi agregat dari semua server."""
+    settings = load_settings()
+    servers = settings.get("servers", [])
+    
+    enabled_servers = [s for s in servers if s.get("enabled", True)]
+    total = len(enabled_servers)
+    connected = 0
+    
+    for srv in enabled_servers:
+        key = f"{srv['ip']}:{srv['port']}"
+        if resolume_health.get(key) == "connected":
+            connected += 1
+            
     return jsonify({
-        "status": resolume_health["status"],
-        "paused": load_settings().get("paused", False)
+        "status": "connected" if connected > 0 else "disconnected",
+        "detailed_health": resolume_health,
+        "servers_summary": f"{connected}/{total}",
+        "paused": settings.get("paused", False)
     })
 
 @app.route('/api/trigger-now', methods=['POST'])
@@ -326,21 +405,33 @@ def check_update():
     except Exception as e:
         return jsonify({"update_available": False, "error": str(e)})
 
+def start_flask():
+    """Menjalankan server Flask agar bisa diakses dari jaringan lokal."""
+    # use_reloader=False sangat penting agar tidak conflict dengan thread lain
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+
 if __name__ == '__main__':
     load_schedule_into_memory()
     
-    scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
-    scheduler_thread.start()
+    # Jalankan scheduler di background
+    threading.Thread(target=run_scheduler, daemon=True).start()
     
-    heartbeat_thread = threading.Thread(target=heartbeat_worker, daemon=True)
-    heartbeat_thread.start()
+    # Jalankan heartbeat di background
+    threading.Thread(target=heartbeat_worker, daemon=True).start()
+
+    # Jalankan Flask di background agar bisa diakses dari Mobile (0.0.0.0)
+    threading.Thread(target=start_flask, daemon=True).start()
     
+    # Beri waktu sebentar untuk flask startup sebelum GUI muncul
+    time.sleep(1)
+
     window = webview.create_window(
-        title='Resolume Auto-Trigger', 
-        url=app,
-        width=520, 
-        height=960, 
-        background_color='#09090b'
+        title=f'Resolume Scheduler v{APP_VERSION}', 
+        url='http://127.0.0.1:5000',
+        width=540, 
+        height=980, 
+        background_color='#09090b',
+        min_size=(440, 700)
     )
     
     webview.start()

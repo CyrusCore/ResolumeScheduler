@@ -125,16 +125,6 @@ header {
     100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
 }
 
-.pulse {
-    animation: simple-pulse 1.5s infinite ease-in-out;
-}
-
-@keyframes simple-pulse {
-    0% { opacity: 0.3; }
-    50% { opacity: 1; }
-    100% { opacity: 0.3; }
-}
-
 /* NAVIGATION BUTTONS */
 .nav-btn {
     display: flex;
@@ -148,6 +138,13 @@ header {
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
+    height: 44px; /* Consistent height */
+}
+
+.btn-icon-only {
+    padding: 0;
+    width: 44px;
+    border-radius: 50% !important;
 }
 
 .btn-accent {
@@ -198,7 +195,7 @@ header {
 
 /* TABLE STYLES */
 .table-wrapper {
-    overflow-x: auto;
+    overflow-x: hidden;
     max-height: 400px;
     overflow-y: auto;
     border: 1px solid var(--glass-border);
@@ -338,7 +335,7 @@ tbody tr:hover {
     background: #0f0f13;
     border: 1px solid var(--glass-border);
     border-radius: 20px;
-    padding: 2rem;
+    padding: 1.5rem; /* Reduced from 2rem */
     box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);
     transform: translateY(10px) scale(0.98);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -533,4 +530,66 @@ input:focus {
 
 .theme-dot:hover {
     transform: scale(1.2);
+}
+
+/* ==========================================
+   MOBILE RESPONSIVENESS (Android/iOS)
+   ========================================== */
+@media (max-width: 600px) {
+    body {
+        padding: 0.75rem 0.5rem 5rem 0.5rem;
+    }
+
+    .glass-container {
+        padding: 1.25rem 1rem;
+        border-radius: 16px;
+    }
+
+    .header-title h1 {
+        font-size: 1.5rem;
+    }
+
+    .header-actions {
+        flex-direction: row !important;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        gap: 6px;
+    }
+
+    /* Restore Table Columns View */
+    #schedule-table thead {
+        display: table-header-group;
+    }
+
+    #schedule-table tbody tr {
+        display: table-row;
+    }
+
+    #schedule-table td {
+        display: table-cell;
+        padding: 12px 8px !important;
+        font-size: 0.85rem;
+        vertical-align: middle;
+    }
+
+    #schedule-table td::before {
+        display: none;
+    }
+    
+    #schedule-table td.col-time {
+        font-size: 0.9rem;
+    }
+
+    .btn-delete {
+        padding: 8px 12px !important;
+        font-size: 0.85rem !important;
+    }
+
+    /* Full screen modals on very small devices */
+    .modal-box {
+        width: 95%;
+        max-height: none; /* Removed 90vh */
+        overflow-y: visible; /* Hid scrollbar */
+    }
 }

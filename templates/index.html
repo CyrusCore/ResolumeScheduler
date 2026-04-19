@@ -17,13 +17,13 @@
                 <h1>Resolume Automator</h1>
                 <span class="subtitle-text">Precision Clip Scheduling</span>
             </div>
-            <div class="header-actions">
+            <div class="header-actions" style="display: flex; gap: 12px; align-items: center; justify-content: space-between; width: 100%;">
                 <div class="status-pill">
                     <span id="connection-dot" class="dot disconnected"></span>
-                    <span id="connection-text">Checking Ping...</span>
+                    <span id="connection-text">Checking...</span>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                    <button id="btn-pause-toggle" class="nav-btn btn-ghost" title="Pause/Resume Scheduler" style="padding: 8px; border-radius: 50%; width: 40px; height: 40px;">
+                    <button id="btn-pause-toggle" class="nav-btn btn-ghost btn-icon-only" title="Pause/Resume Scheduler">
                         <svg id="pause-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" style="display: none;">
                             <path d="M10 9v6m4-6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                             <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
@@ -37,9 +37,9 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="icon">
                             <path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                         </svg>
-                        <span>New Schedule</span>
+                        <span>New</span>
                     </button>
-                    <button id="btn-open-settings" class="nav-btn btn-ghost" title="Settings">
+                    <button id="btn-open-settings" class="nav-btn btn-ghost btn-icon-only" title="Settings">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                             <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="2" />
                             <path
@@ -61,12 +61,11 @@
                     <table id="schedule-table">
                         <thead>
                             <tr>
-                                <th style="width: 18%;">Time</th>
-                                <th style="text-align: center; width: 12%;">Layer</th>
-                                <th style="text-align: center; width: 12%;">Col</th>
-                                <th style="text-align: center; width: 12%;">Rpt</th>
-                                <th style="text-align: center; width: 12%;">Health</th>
-                                <th style="text-align: right; width: 34%;">Action</th>
+                                <th style="width: 25%;">Time</th>
+                                <th style="text-align: center; width: 18%;">Layer</th>
+                                <th style="text-align: center; width: 18%;">Col</th>
+                                <th style="text-align: center; width: 18%;">Rpt</th>
+                                <th style="text-align: right; width: 21%;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="schedule-list">
@@ -76,6 +75,7 @@
                 </div>
             </div>
         </section>
+
     </div>
 
     <!-- MAIN FOOTER -->
@@ -111,16 +111,6 @@
                         <input type="number" id="input-column" min="1" placeholder="e.g. 2" required>
                     </div>
 
-                    <div class="input-group">
-                        <label>Linked Media File (Optional)</label>
-                        <div style="display: flex; gap: 8px;">
-                            <input type="text" id="input-file-path" placeholder="C:\Path\To\Video.mp4" readonly style="flex-grow: 1; cursor: default;">
-                            <button type="button" id="btn-browse-file" class="nav-btn btn-ghost" style="padding: 10px; border-radius: 10px; border: 1px solid var(--glass-border);">
-                                &#x1F4C2;
-                            </button>
-                        </div>
-                    </div>
-                    
                     <div class="input-group-row">
                         <input type="checkbox" id="input-repeat">
                         <label for="input-repeat" style="cursor: pointer;">Repeat Daily (Permanent)</label>
@@ -135,7 +125,8 @@
                         <div id="duration-fields" class="hidden" style="margin-top: 12px; padding-left: 28px;">
                             <div class="input-group">
                                 <label>Duration (minutes)</label>
-                                <input type="number" id="input-duration" min="1" placeholder="e.g. 10">
+                                <input type="number" id="input-duration" min="0" placeholder="Set 0 for Auto-Sync">
+                                <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">* 0 = detect length from Resolume</p>
                             </div>
                             <div class="input-grid">
                                 <div class="input-group">
@@ -169,14 +160,21 @@
                 </button>
             </div>
             <div class="modal-body">
-                <p class="subtitle">Configure the target IP and Port for the Resolume REST API Server.</p>
-                <div class="input-group">
-                    <label>IP Address</label>
-                    <input type="text" id="setting-ip" placeholder="127.0.0.1">
-                </div>
-                <div class="input-group">
-                    <label>Port</label>
-                    <input type="number" id="setting-port" placeholder="8080">
+                <div id="server-list-container" style="margin-bottom: 20px;">
+                    <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 12px;">Sync Servers</label>
+                    <div id="settings-server-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+                        <!-- Server items will be rendered here -->
+                    </div>
+                    
+                    <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); border-radius: 12px; padding: 12px;">
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">Add New Server</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 80px; gap: 8px; margin-bottom: 8px;">
+                            <input type="text" id="new-srv-name" placeholder="Name" style="padding: 8px; font-size: 0.85rem;">
+                            <input type="text" id="new-srv-ip" placeholder="IP Root" style="padding: 8px; font-size: 0.85rem;">
+                            <input type="number" id="new-srv-port" placeholder="Port" value="8080" style="padding: 8px; font-size: 0.85rem;">
+                        </div>
+                        <button type="button" onclick="addNewServer()" class="btn-submit" style="padding: 8px; font-size: 0.8rem; background: rgba(56, 189, 248, 0.1); border-color: var(--accent-glow); color: var(--accent);">+ Add Server</button>
+                    </div>
                 </div>
 
                 <div class="input-group"
@@ -222,6 +220,12 @@
                             style="font-size: 1.15rem; font-weight: 700; color: var(--accent); display: inline-block; margin-top: 4px;">
                             Bramszs.Visual</span>
                     </p>
+                    
+                    <div id="mobile-access-info" style="display: none; margin-top: 12px; flex-direction: column; gap: 4px;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Web Dashboard URL</span>
+                        <span id="mobile-url" style="font-size: 1rem; font-weight: 700; color: var(--accent); font-family: monospace;">http://127.0.0.1:5000</span>
+                    </div>
+
                     <p style="font-size: 0.95rem; margin-top: 8px; color: var(--text-muted); font-weight: 400;">
                         Version <br>
                         <span
@@ -241,7 +245,20 @@
     <script>
         let currentSchedules = [];
         let isPaused = false;
-        let mediaHealthMap = {};
+        let configServers = []; // Global servers list for modal
+
+        async function fetchNetworkInfo() {
+            try {
+                const res = await fetch('/api/network-info');
+                const data = await res.json();
+                if (data.local_ip && data.local_ip !== '127.0.0.1') {
+                    const infoBox = document.getElementById('mobile-access-info');
+                    if (infoBox) infoBox.style.display = 'flex';
+                    const urlEl = document.getElementById('mobile-url');
+                    if (urlEl) urlEl.innerText = data.full_url;
+                }
+            } catch (e) { }
+        }
 
         // ==================
         // THEME SYSTEM
@@ -315,7 +332,6 @@
                 const res = await fetch('/api/schedule');
                 currentSchedules = await res.json();
                 renderTable();
-                checkMediaHealth(); // Check health after fetching
             } catch (e) { }
         }
 
@@ -351,24 +367,25 @@
             try {
                 const res = await fetch('/api/status');
                 const data = await res.json();
+
                 const dot = document.getElementById('connection-dot');
                 const text = document.getElementById('connection-text');
 
                 if (data.status === 'connected') {
                     dot.className = 'dot connected';
-                    text.innerText = 'Connected';
+                    text.innerText = `Servers: ${data.servers_summary}`;
                 } else {
                     dot.className = 'dot disconnected';
-                    text.innerText = 'Disc (Timeout)';
+                    text.innerText = 'Servers Offline';
                 }
 
-                // Update Pause State
-                updatePauseUI(data.paused);
+                isPaused = data.paused;
+                updatePauseUI(isPaused);
             } catch (e) {
                 const dot = document.getElementById('connection-dot');
                 const text = document.getElementById('connection-text');
                 dot.className = 'dot disconnected';
-                text.innerText = 'Offline/Error';
+                text.innerText = 'Service Down';
             }
         }
 
@@ -423,31 +440,6 @@
             } catch (e) { }
         }
 
-        async function checkMediaHealth() {
-            const paths = currentSchedules.map(s => s.file_path).filter(p => !!p);
-            if (paths.length === 0) return;
-
-            try {
-                const res = await fetch('/api/media-health', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ paths })
-                });
-                mediaHealthMap = await res.json();
-                renderTable();
-            } catch (e) { }
-        }
-
-        async function browseFile() {
-            try {
-                const res = await fetch('/api/open-file-dialog');
-                const data = await res.json();
-                if (data.success && data.path) {
-                    document.getElementById('input-file-path').value = data.path;
-                }
-            } catch (e) { }
-        }
-
         function renderTable() {
             const tbody = document.getElementById('schedule-list');
             tbody.innerHTML = '';
@@ -459,28 +451,19 @@
                 const repeatIcon = item.repeat ? '&#x21BB;' : '&#x2715;';
                 const repeatColor = item.repeat ? 'var(--accent)' : 'var(--text-muted)';
                 
-                // Health Indicator
-                let healthHTML = '<span style="color: var(--text-muted); opacity: 0.3;">-</span>';
-                if (item.file_path) {
-                    const status = mediaHealthMap[item.file_path] || 'checking';
-                    if (status === 'ok') {
-                        healthHTML = '<span style="color: var(--success);" title="File Healthy">&#x1F6E1;</span>';
-                    } else if (status === 'missing') {
-                        healthHTML = '<span style="color: #ef4444;" title="File Missing!">&#x26A0;</span>';
-                    } else if (status === 'corrupt') {
-                        healthHTML = '<span style="color: #fb923c;" title="File Empty/Corrupt">&#x26A0;</span>';
-                    } else {
-                        healthHTML = '<span class="pulse" style="color: var(--text-muted);">&#x1F6E1;</span>';
-                    }
-                }
+                const durationText = (item.duration && parseInt(item.duration) > 0) 
+                    ? `${item.duration}m` 
+                    : (item.duration == 0 && item.next_layer ? 'Auto Sync' : '-');
 
                 tr.innerHTML = `
-                    <td class="col-time">${item.time}</td>
-                    <td style="text-align: center; color: var(--accent); font-weight: 600;">${item.layer}</td>
-                    <td style="text-align: center; color: var(--accent); font-weight: 600;">${item.column}</td>
-                    <td style="text-align: center; color: ${repeatColor}; font-size: 1.1rem; font-weight: bold;">${repeatIcon}</td>
-                    <td style="text-align: center; font-size: 1.2rem;">${healthHTML}</td>
-                    <td style="text-align: right; display: flex; gap: 6px; justify-content: flex-end; align-items: center; padding-top: 12px;">
+                    <td class="col-time" data-label="Time">
+                        ${item.time}
+                        <span style="display: block; font-size: 0.7rem; color: var(--text-muted); font-weight: 400;">Wait: ${durationText}</span>
+                    </td>
+                    <td style="text-align: center; color: var(--accent); font-weight: 600;" data-label="Layer">${item.layer}</td>
+                    <td style="text-align: center; color: var(--accent); font-weight: 600;" data-label="Column">${item.column}</td>
+                    <td style="text-align: center; color: ${repeatColor}; font-size: 1.1rem; font-weight: bold;" data-label="Repeat">${repeatIcon}</td>
+                    <td style="text-align: right; display: flex; gap: 6px; justify-content: flex-end; align-items: center; padding-top: 12px;" data-label="Action">
                         <button class="btn-delete" style="color: var(--success); border-color: rgba(52, 211, 153, 0.2);" onclick="triggerManual(${item.layer}, ${item.column})" title="Trigger Now">&#x25B6;</button>
                         <button class="btn-delete" onclick="removeSchedule(${index})" title="Delete Schedule">Del</button>
                     </td>
@@ -535,7 +518,6 @@
             const layer = parseInt(document.getElementById('input-layer').value);
             const column = parseInt(document.getElementById('input-column').value);
             const repeat = document.getElementById('input-repeat').checked;
-            const file_path = document.getElementById('input-file-path').value;
             
             const hasNext = document.getElementById('toggle-duration').checked;
             let duration = 0;
@@ -549,14 +531,13 @@
             }
 
             currentSchedules.push({ 
-                time, layer, column, repeat, file_path,
+                time, layer, column, repeat,
                 duration, next_layer, next_column 
             });
             
             renderTable();
             closeAddModal();
             autoSave();
-            checkMediaHealth();
         });
 
         // Duration toggle logic
@@ -570,46 +551,106 @@
         });
 
         document.getElementById('btn-pause-toggle').addEventListener('click', togglePause);
-        document.getElementById('btn-browse-file').addEventListener('click', browseFile);
 
         // ------------------
         // MODAL SETTINGS
         // ------------------
         const settingsModal = document.getElementById('settings-modal');
-        document.getElementById('btn-open-settings').addEventListener('click', () => {
-            fetchSettings();
-            settingsModal.classList.remove('hidden');
-            setTimeout(() => { settingsModal.style.opacity = '1'; }, 10);
-        });
+        document.getElementById('btn-open-settings').addEventListener('click', openSettings);
 
-        document.getElementById('btn-close-settings').addEventListener('click', closeSettingsModal);
+        document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
         settingsModal.addEventListener('click', (e) => {
-            if (e.target === settingsModal) closeSettingsModal();
+            if (e.target === settingsModal) closeSettings();
         });
 
-        function closeSettingsModal() {
+        function closeSettings() {
             settingsModal.style.opacity = '0';
             setTimeout(() => { settingsModal.classList.add('hidden'); }, 300);
         }
 
-        document.getElementById('btn-save-settings').addEventListener('click', async () => {
-            const ip = document.getElementById('setting-ip').value;
-            const port = document.getElementById('setting-port').value;
+        async function openSettings() {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                
+                configServers = data.servers || [];
+                renderServerList();
+                
+                document.getElementById('setting-autostart').checked = data.autostart || false;
+                
+                const currentTheme = data.theme || 'blue';
+                applyTheme(currentTheme);
+                
+                settingsModal.classList.remove('hidden');
+                setTimeout(() => { settingsModal.style.opacity = '1'; }, 10);
+            } catch (e) { }
+        }
+
+        function renderServerList() {
+            const list = document.getElementById('settings-server-list');
+            list.innerHTML = '';
+            
+            configServers.forEach((srv, idx) => {
+                const div = document.createElement('div');
+                div.style = "display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); border-radius: 10px;";
+                div.innerHTML = `
+                    <div style="flex-grow: 1;">
+                        <span style="font-weight: 600; font-size: 0.9rem; color: var(--accent);">${srv.name}</span>
+                        <p style="font-size: 0.75rem; color: var(--text-muted);">${srv.ip}:${srv.port}</p>
+                    </div>
+                    <button type="button" onclick="removeServer(${idx})" style="background: transparent; border: none; color: #ef4444; cursor: pointer; padding: 5px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function addNewServer() {
+            const name = document.getElementById('new-srv-name').value || "Server";
+            const ip = document.getElementById('new-srv-ip').value;
+            const port = document.getElementById('new-srv-port').value || "8080";
+            
+            if (!ip) return;
+            
+            configServers.push({ name, ip, port, enabled: true });
+            document.getElementById('new-srv-name').value = '';
+            document.getElementById('new-srv-ip').value = '';
+            renderServerList();
+        }
+
+        function removeServer(idx) {
+            configServers.splice(idx, 1);
+            renderServerList();
+        }
+
+        async function saveSettings() {
             const autostart = document.getElementById('setting-autostart').checked;
             const btn = document.getElementById('btn-save-settings');
             const ogText = btn.innerText;
             btn.innerText = 'Applying...';
+            
+            const payload = {
+                servers: configServers,
+                autostart,
+                theme: document.body.dataset.theme || 'blue',
+                paused: isPaused
+            };
+
             try {
-                await fetch('/api/settings', {
+                const res = await fetch('/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ip, port, autostart })
+                    body: JSON.stringify(payload)
                 });
-                closeSettingsModal();
+                const data = await res.json();
+                if (data.success) {
+                    closeSettings();
+                    checkConnection();
+                }
                 btn.innerText = ogText;
-                checkConnection();
-            } catch (e) { }
-        });
+            } catch (e) { btn.innerText = ogText; }
+        }
 
         document.getElementById('btn-check-update').addEventListener('click', checkUpdate);
 
@@ -622,15 +663,21 @@
         fetchSchedules();
         checkConnection();
         // Update check is now manual — click button in Settings
-        setInterval(() => {
+        window.addEventListener('load', () => {
             checkConnection();
             fetchSchedules();
-            checkMediaHealth();
-        }, 30000); // 30s for full updates
-        
-        setInterval(() => {
-            checkConnection(); // Fast connection check
-        }, 5000);
+            fetchNetworkInfo();
+            
+            // Re-fetch schedules periodically
+            setInterval(() => {
+                checkConnection();
+                fetchSchedules();
+            }, 10000); 
+            
+            setInterval(() => {
+                checkConnection(); 
+            }, 5000);
+        });
     </script>
 </body>
 
