@@ -29,6 +29,10 @@ jobs:
         run: |
           pip install pyinstaller pywebview pillow
 
+      - name: Inject Version Tag
+        run: |
+          (Get-Content app.py) -replace 'APP_VERSION = ".*"', ('APP_VERSION = "' + $env:GITHUB_REF_NAME.Replace("v","") + '"') | Set-Content app.py
+
       - name: Compile Executable (PyInstaller)
         run: |
           pyinstaller --noconfirm --onedir --windowed --icon "logo.ico" --add-data "templates;templates" --add-data "static;static" app.py --name "ResolumeScheduler"

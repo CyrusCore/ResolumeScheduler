@@ -146,7 +146,7 @@ def run_scheduler():
 # --- ROUTES ---
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', version=APP_VERSION)
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
