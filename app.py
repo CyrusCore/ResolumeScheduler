@@ -24,7 +24,7 @@ app = Flask(__name__,
 # ==========================================
 # KONFIGURASI VERSI & GITHUB REPO
 # ==========================================
-APP_VERSION = "1.5.4"
+APP_VERSION = "1.6.0"
 # Format Repo Target: "username/repository-name"
 GITHUB_REPO = "CyrusCore/ResolumeScheduler"
 
@@ -42,7 +42,7 @@ SETTINGS_FILE = os.path.join(application_path, 'settings.json')
 def load_settings():
     """Membaca settings resolume dari file."""
     if not os.path.exists(SETTINGS_FILE):
-        default_settings = {"ip": "127.0.0.1", "port": "8080", "autostart": False}
+        default_settings = {"ip": "127.0.0.1", "port": "8080", "autostart": False, "theme": "blue", "paused": False}
         with open(SETTINGS_FILE, 'w') as f:
             json.dump(default_settings, f)
         return default_settings
@@ -50,8 +50,8 @@ def load_settings():
     try:
         with open(SETTINGS_FILE, 'r') as f:
             data = json.load(f)
-            if "autostart" not in data:
-                data["autostart"] = False
+            if "autostart" not in data: data["autostart"] = False
+            if "paused" not in data: data["paused"] = False
             return data
     except:
         return {"ip": "127.0.0.1", "port": "8080", "autostart": False}
@@ -85,36 +85,84 @@ def get_base_url():
     port = settings.get("port", "8080")
     return f"http://{ip}:{port}/api/v1"
 
-def trigger_clip(layer_index, clip_index, target_time):
+# Global health status
+resolume_health = {"status": "disconnected", "last_check": 0}
+
+def heartbeat_worker():
+    """Thread untuk mengecek koneksi Resolume secara berkala."""
+    global resolume_health
+    while True:
+        try:
+            target = f"{get_base_url()}/product"
+            response = requests.get(target, timeout=2)
+            if response.status_code == 200:
+                resolume_health = {"status": "connected", "last_check": time.time()}
+            else:
+                resolume_health = {"status": "disconnected", "last_check": time.time()}
+        except:
+            resolume_health = {"status": "disconnected", "last_check": time.time()}
+        time.sleep(5)
+
+def trigger_clip(layer_index, clip_index, target_time=None, item_id=None, is_follow_up=False):
     """Memicu klip spesifik di Resolume secara terprogram."""
+    settings = load_settings()
+    if settings.get("paused", False) and not is_follow_up:
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] SKIP TRIGGER (Paused) -> Layer {layer_index} Clip {clip_index}")
+        return
+        
     endpoint = f"{get_base_url()}/composition/layers/{layer_index}/clips/{clip_index}/connect"
     print(f"[{datetime.now().strftime('%H:%M:%S')}] TRIGGER -> {endpoint}")
+    
     try:
         requests.post(endpoint, timeout=4)
     except requests.exceptions.RequestException as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ERROR Triggering Resolume: {e}")
-        
-    # Auto-Delete dari schedule.json
+        return # Jangan cancel job kalau gagal, mungkin mau coba lagi? Tapi kita skip aja dulu.
+
+    # Cari data jadwal untuk handling duration/repeat
     try:
         with open(SCHEDULE_FILE, 'r') as f:
             data = json.load(f)
             
         new_data = []
-        removed = False
+        found_item = None
+        
         for item in data:
-            if not removed and item.get('time') == target_time and int(item.get('layer')) == int(layer_index) and int(item.get('column')) == int(clip_index):
-                removed = True
-                continue
-            new_data.append(item)
+            # Match item (by time, layer, column as fallback or use a UUID if we had one)
+            is_match = False
+            if target_time and str(item.get('time')) == str(target_time) and int(item.get('layer')) == int(layer_index) and int(item.get('column')) == int(clip_index):
+                is_match = True
             
+            if is_match and not found_item:
+                found_item = item
+                # Jika repeat: true, simpan kembali
+                if item.get('repeat', False):
+                    new_data.append(item)
+                # Jika tidak repeat, jangan masukkan ke new_data (auto-delete)
+            else:
+                new_data.append(item)
+                
+        # Simpan perubahan ke schedule.json
         with open(SCHEDULE_FILE, 'w') as f:
             json.dump(new_data, f, indent=4)
             
+        # Handling sub-sequent trigger (Duration)
+        if found_item and found_item.get('duration') and int(found_item['duration']) > 0:
+            next_l = found_item.get('next_layer')
+            next_c = found_item.get('next_column')
+            duration_sec = int(found_item['duration']) * 60
+            
+            if next_l and next_c:
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] QUEUED -> Next Clip in {found_item['duration']} min")
+                threading.Timer(duration_sec, trigger_clip, args=[next_l, next_c, None, None, True]).start()
+
     except Exception as e:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] ERROR Auto-delete schedule: {e}")
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] ERROR handling schedule post-trigger: {e}")
         
-    # Return CancelJob untuk menjamin triggernya 'run once'
-    return schedule.CancelJob
+    # Jika tidak repeat, return CancelJob
+    if found_item and not found_item.get('repeat', False):
+        return schedule.CancelJob
+    return None
 
 def load_schedule_into_memory():
     """Memuat jadwal dari schedule.json kembali ke instance schedule Python."""
@@ -133,7 +181,7 @@ def load_schedule_into_memory():
             column = item.get('column')
             
             if target_time and layer and column:
-                schedule.every().day.at(target_time).do(trigger_clip, layer_index=layer, clip_index=column, target_time=target_time)
+                job = schedule.every().day.at(target_time).do(trigger_clip, layer_index=layer, clip_index=column, target_time=target_time)
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Error saat memuat JSON schedule: {e}")
 
@@ -143,21 +191,42 @@ def run_scheduler():
         schedule.run_pending()
         time.sleep(1)
 
-# --- ROUTES ---
+@app.route('/api/status', methods=['GET'])
+def get_status():
+    return jsonify({
+        "status": resolume_health["status"],
+        "paused": load_settings().get("paused", False)
+    })
+
+@app.route('/api/trigger-now', methods=['POST'])
+def trigger_now():
+    try:
+        data = request.json
+        layer = data.get('layer')
+        column = data.get('column')
+        if layer and column:
+            # Manual trigger ignores paused state
+            trigger_clip(layer, column, is_follow_up=True)
+            return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    return jsonify({"success": False, "error": "Invalid data"}), 400
+
+@app.route('/api/pause', methods=['POST'])
+def toggle_pause():
+    try:
+        settings = load_settings()
+        is_paused = request.json.get('paused', False)
+        settings['paused'] = is_paused
+        with open(SETTINGS_FILE, 'w') as f:
+            json.dump(settings, f, indent=4)
+        return jsonify({"success": True, "paused": is_paused})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route('/')
 def index():
     return render_template('index.html', version=APP_VERSION)
-
-@app.route('/api/status', methods=['GET'])
-def get_status():
-    try:
-        target = f"{get_base_url()}/product"
-        response = requests.get(target, timeout=0.8)
-        if response.status_code == 200:
-            return jsonify({"status": "connected", "url": target})
-    except:
-        pass
-    return jsonify({"status": "disconnected"})
 
 @app.route('/api/schedule', methods=['GET', 'POST'])
 def manage_schedule():
@@ -228,6 +297,9 @@ if __name__ == '__main__':
     
     scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
     scheduler_thread.start()
+    
+    heartbeat_thread = threading.Thread(target=heartbeat_worker, daemon=True)
+    heartbeat_thread.start()
     
     window = webview.create_window(
         title='Resolume Auto-Trigger', 

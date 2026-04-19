@@ -23,6 +23,16 @@
                     <span id="connection-text">Checking Ping...</span>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
+                    <button id="btn-pause-toggle" class="nav-btn btn-ghost" title="Pause/Resume Scheduler" style="padding: 8px; border-radius: 50%; width: 40px; height: 40px;">
+                        <svg id="pause-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" style="display: none;">
+                            <path d="M10 9v6m4-6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+                        </svg>
+                        <svg id="play-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" style="display: none;">
+                            <path d="M10 8l6 4-6 4V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+                        </svg>
+                    </button>
                     <button id="btn-open-add" class="nav-btn btn-accent" title="Add New Schedule">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="icon">
                             <path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -51,10 +61,11 @@
                     <table id="schedule-table">
                         <thead>
                             <tr>
-                                <th>Time</th>
-                                <th style="text-align: center;">Layer</th>
-                                <th style="text-align: center;">Col</th>
-                                <th style="text-align: right;">Action</th>
+                                <th style="width: 20%;">Time</th>
+                                <th style="text-align: center; width: 15%;">Layer</th>
+                                <th style="text-align: center; width: 15%;">Col</th>
+                                <th style="text-align: center; width: 15%;">Rpt</th>
+                                <th style="text-align: right; width: 35%;">Action</th>
                             </tr>
                         </thead>
                         <tbody id="schedule-list">
@@ -98,6 +109,35 @@
                         <label>Column Index</label>
                         <input type="number" id="input-column" min="1" placeholder="e.g. 2" required>
                     </div>
+                    
+                    <div class="input-group-row">
+                        <input type="checkbox" id="input-repeat">
+                        <label for="input-repeat" style="cursor: pointer;">Repeat Daily (Permanent)</label>
+                    </div>
+
+                    <div class="indent-section">
+                        <div class="input-group-row">
+                            <input type="checkbox" id="toggle-duration">
+                            <label for="toggle-duration" style="cursor: pointer; font-weight: 600;">Chain Next Clip After Duration</label>
+                        </div>
+                        
+                        <div id="duration-fields" class="hidden" style="margin-top: 12px; padding-left: 28px;">
+                            <div class="input-group">
+                                <label>Duration (minutes)</label>
+                                <input type="number" id="input-duration" min="1" placeholder="e.g. 10">
+                            </div>
+                            <div class="input-grid">
+                                <div class="input-group">
+                                    <label>Next Layer</label>
+                                    <input type="number" id="input-next-layer" min="1">
+                                </div>
+                                <div class="input-group">
+                                    <label>Next Column</label>
+                                    <input type="number" id="input-next-column" min="1">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn-submit">Add to Schedule</button>
                     </div>
@@ -139,20 +179,26 @@
 
                 <!-- CHECK FOR UPDATES -->
                 <div style="margin-top: 1rem;">
-                    <button id="btn-check-update" class="btn-submit" style="background: transparent; color: var(--accent); border: 1px solid rgba(56,189,248,0.3); font-size: 0.85rem; padding: 10px; width: 100%;">
+                    <button id="btn-check-update" class="btn-submit"
+                        style="background: transparent; color: var(--accent); border: 1px solid rgba(56,189,248,0.3); font-size: 0.85rem; padding: 10px; width: 100%;">
                         &#x1F50D; Check for Updates
                     </button>
-                    <div id="update-result" style="margin-top: 10px; font-size: 0.85rem; text-align: center; min-height: 20px;"></div>
+                    <div id="update-result"
+                        style="margin-top: 10px; font-size: 0.85rem; text-align: center; min-height: 20px;"></div>
                 </div>
 
                 <!-- THEME SELECTOR -->
                 <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--glass-border);">
-                    <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 12px;">Accent Theme</label>
+                    <label
+                        style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 12px;">Accent
+                        Theme</label>
                     <div style="display: flex; gap: 12px; align-items: center;">
-                        <button class="theme-dot" data-theme="blue"   title="Blue"   style="background: #38bdf8;"></button>
-                        <button class="theme-dot" data-theme="pink"   title="Pink"   style="background: #f472b6;"></button>
-                        <button class="theme-dot" data-theme="orange" title="Orange" style="background: #fb923c;"></button>
-                        <button class="theme-dot" data-theme="purple" title="Purple" style="background: #a78bfa;"></button>
+                        <button class="theme-dot" data-theme="blue" title="Blue" style="background: #38bdf8;"></button>
+                        <button class="theme-dot" data-theme="pink" title="Pink" style="background: #f472b6;"></button>
+                        <button class="theme-dot" data-theme="orange" title="Orange"
+                            style="background: #fb923c;"></button>
+                        <button class="theme-dot" data-theme="purple" title="Purple"
+                            style="background: #a78bfa;"></button>
                     </div>
                 </div>
 
@@ -171,7 +217,6 @@
                             style="font-size: 1.15rem; font-weight: 700; color: var(--accent); display: inline-block; margin-top: 4px;">
                             {{ version }}</span>
                     </p>
-                    Inspired By Gevan Putra Yudhistira
                 </div>
 
             </div>
@@ -184,15 +229,16 @@
     <!-- Script Logika Frontend -->
     <script>
         let currentSchedules = [];
+        let isPaused = false;
 
         // ==================
         // THEME SYSTEM
         // ==================
         const THEMES = {
-            blue:   { accent: '#38bdf8', glow: 'rgba(56, 189, 248, 0.3)',   bg: 'rgba(56, 189, 248, 0.08)' },
-            pink:   { accent: '#f472b6', glow: 'rgba(244, 114, 182, 0.3)',  bg: 'rgba(244, 114, 182, 0.08)' },
-            orange: { accent: '#fb923c', glow: 'rgba(251, 146, 60, 0.3)',   bg: 'rgba(251, 146, 60, 0.08)' },
-            purple: { accent: '#a78bfa', glow: 'rgba(167, 139, 250, 0.3)',  bg: 'rgba(167, 139, 250, 0.08)' },
+            blue: { accent: '#38bdf8', glow: 'rgba(56, 189, 248, 0.3)', bg: 'rgba(56, 189, 248, 0.08)' },
+            pink: { accent: '#f472b6', glow: 'rgba(244, 114, 182, 0.3)', bg: 'rgba(244, 114, 182, 0.08)' },
+            orange: { accent: '#fb923c', glow: 'rgba(251, 146, 60, 0.3)', bg: 'rgba(251, 146, 60, 0.08)' },
+            purple: { accent: '#a78bfa', glow: 'rgba(167, 139, 250, 0.3)', bg: 'rgba(167, 139, 250, 0.08)' },
         };
 
         function applyTheme(name, save = true) {
@@ -224,7 +270,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ..._lastSettings, theme: name })
-                }).catch(() => {});
+                }).catch(() => { });
             }
         }
 
@@ -302,12 +348,66 @@
                     dot.className = 'dot disconnected';
                     text.innerText = 'Disc (Timeout)';
                 }
+
+                // Update Pause State
+                updatePauseUI(data.paused);
             } catch (e) {
                 const dot = document.getElementById('connection-dot');
                 const text = document.getElementById('connection-text');
                 dot.className = 'dot disconnected';
                 text.innerText = 'Offline/Error';
             }
+        }
+
+        function updatePauseUI(paused) {
+            isPaused = paused;
+            const btn = document.getElementById('btn-pause-toggle');
+            const pauseIcon = document.getElementById('pause-icon');
+            const playIcon = document.getElementById('play-icon');
+            
+            if (paused) {
+                btn.style.color = '#ef4444';
+                btn.style.background = 'rgba(239, 68, 68, 0.1)';
+                pauseIcon.style.display = 'none';
+                playIcon.style.display = 'block';
+                btn.title = 'Resume Scheduler';
+            } else {
+                btn.style.color = 'var(--success)';
+                btn.style.background = 'rgba(52, 211, 153, 0.1)';
+                pauseIcon.style.display = 'block';
+                playIcon.style.display = 'none';
+                btn.title = 'Pause Scheduler';
+            }
+        }
+
+        async function togglePause() {
+            try {
+                const res = await fetch('/api/pause', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paused: !isPaused })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    updatePauseUI(data.paused);
+                }
+            } catch (e) { }
+        }
+
+        async function triggerManual(layer, column) {
+            try {
+                const res = await fetch('/api/trigger-now', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ layer, column })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const dot = document.getElementById('connection-dot');
+                    dot.style.transform = 'scale(1.5)';
+                    setTimeout(() => dot.style.transform = 'scale(1)', 300);
+                }
+            } catch (e) { }
         }
 
         function renderTable() {
@@ -318,11 +418,18 @@
 
             currentSchedules.forEach((item, index) => {
                 const tr = document.createElement('tr');
+                const repeatIcon = item.repeat ? '&#x21BB;' : '&#x2715;';
+                const repeatColor = item.repeat ? 'var(--accent)' : 'var(--text-muted)';
+                
                 tr.innerHTML = `
                     <td class="col-time">${item.time}</td>
                     <td style="text-align: center; color: var(--accent); font-weight: 600;">${item.layer}</td>
                     <td style="text-align: center; color: var(--accent); font-weight: 600;">${item.column}</td>
-                    <td style="text-align: right;"><button class="btn-delete" onclick="removeSchedule(${index})">Del</button></td>
+                    <td style="text-align: center; color: ${repeatColor}; font-size: 1.1rem; font-weight: bold;">${repeatIcon}</td>
+                    <td style="text-align: right; display: flex; gap: 6px; justify-content: flex-end; align-items: center; padding-top: 12px;">
+                        <button class="btn-delete" style="color: var(--success); border-color: rgba(52, 211, 153, 0.2);" onclick="triggerManual(${item.layer}, ${item.column})" title="Trigger Now">&#x25B6;</button>
+                        <button class="btn-delete" onclick="removeSchedule(${index})" title="Delete Schedule">Del</button>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -373,12 +480,40 @@
             const time = document.getElementById('input-time').value;
             const layer = parseInt(document.getElementById('input-layer').value);
             const column = parseInt(document.getElementById('input-column').value);
+            const repeat = document.getElementById('input-repeat').checked;
+            
+            const hasNext = document.getElementById('toggle-duration').checked;
+            let duration = 0;
+            let next_layer = 0;
+            let next_column = 0;
+            
+            if (hasNext) {
+                duration = parseInt(document.getElementById('input-duration').value) || 0;
+                next_layer = parseInt(document.getElementById('input-next-layer').value) || 0;
+                next_column = parseInt(document.getElementById('input-next-column').value) || 0;
+            }
 
-            currentSchedules.push({ time, layer, column });
+            currentSchedules.push({ 
+                time, layer, column, repeat, 
+                duration, next_layer, next_column 
+            });
+            
             renderTable();
             closeAddModal();
             autoSave();
         });
+
+        // Duration toggle logic
+        document.getElementById('toggle-duration').addEventListener('change', (e) => {
+            const fields = document.getElementById('duration-fields');
+            if (e.target.checked) {
+                fields.classList.remove('hidden');
+            } else {
+                fields.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('btn-pause-toggle').addEventListener('click', togglePause);
 
         // ------------------
         // MODAL SETTINGS
