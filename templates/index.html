@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resolume Scheduler</title>
+    <!-- CSS Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="glass-container">
+
+        <!-- UPDATE NOTIFICATION BANNER -->
+        <div id="update-banner" class="hidden" style="background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent); padding: 14px 22px; border-radius: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15); transition: opacity 0.5s ease;">
+            <div>
+                <strong style="color: var(--accent); display: block; margin-bottom: 4px; font-size: 1.05rem;">Update Available: v<span id="update-version"></span></strong>
+                <span style="font-size: 0.85rem; color: var(--text-main);">A new magical version of Resolume Automator is ready to download!</span>
+            </div>
+            <a id="update-url" href="#" target="_blank" class="nav-btn btn-accent" style="text-decoration: none; padding: 8px 18px; font-size: 0.9rem;">Download</a>
+        </div>
+
+        <header>
+            <div class="header-title">
+                <h1>Resolume Automator</h1>
+                <span class="subtitle-text">Precision Clip Scheduling</span>
+            </div>
+            <div class="header-actions">
+                <div class="status-pill">
+                    <span id="connection-dot" class="dot disconnected"></span>
+                    <span id="connection-text">Checking Ping...</span>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button id="btn-open-add" class="nav-btn btn-accent" title="Add New Schedule">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="icon">
+                            <path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                        <span>New Schedule</span>
+                    </button>
+                    <button id="btn-open-settings" class="nav-btn btn-ghost" title="Settings">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="2" />
+                            <path
+                                d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"
+                                stroke="currentColor" stroke-width="2" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <section class="main-content">
+            <div class="glass-panel">
+                <div class="section-header">
+                    <h2>Current Scheduled Clips</h2>
+                </div>
+
+                <div class="table-wrapper">
+                    <table id="schedule-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th style="text-align: center;">Layer</th>
+                                <th style="text-align: center;">Col</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedule-list">
+                            <!-- Data -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- MAIN FOOTER -->
+    <footer class="app-footer">
+        <p>Copyright &copy; 2026. Designed & Automized by <a href="https://bramszs.my.id"
+                target="_blank">Bramszs.Visual</a></p>
+    </footer>
+
+    <!-- MODAL ADD SCHEDULE -->
+    <div id="add-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2>New Schedule</h2>
+                <button id="btn-close-add" class="btn-close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="subtitle">Set a specific time to trigger a Resolume clip automatically.</p>
+                <form id="schedule-form">
+                    <div class="input-group">
+                        <label>Execution Time</label>
+                        <input type="time" id="input-time" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Layer Index</label>
+                        <input type="number" id="input-layer" min="1" placeholder="e.g. 1" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Column Index</label>
+                        <input type="number" id="input-column" min="1" placeholder="e.g. 2" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn-submit">Add to Schedule</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SETTINGS -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2>API Settings</h2>
+                <button id="btn-close-settings" class="btn-close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="subtitle">Configure the target IP and Port for the Resolume REST API Server.</p>
+                <div class="input-group">
+                    <label>IP Address</label>
+                    <input type="text" id="setting-ip" placeholder="127.0.0.1">
+                </div>
+                <div class="input-group">
+                    <label>Port</label>
+                    <input type="number" id="setting-port" placeholder="8080">
+                </div>
+
+                <div class="input-group"
+                    style="margin-top: 15px; display: flex; flex-direction: row; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="setting-autostart"
+                        style="width: 18px; height: 18px; cursor: pointer; box-shadow: none;">
+                    <label for="setting-autostart"
+                        style="cursor: pointer; margin: 0; color: var(--text-main); font-weight: 500; font-size: 0.9rem;">Auto-start
+                        app when Windows wakes up</label>
+                </div>
+
+                <!-- BRAMSZS VISUAL CREDIT -->
+                <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--glass-border);">
+                    <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">About App</label>
+                    <p style="font-size: 0.95rem; margin-top: 8px; color: var(--text-muted); font-weight: 400;">
+                        Developed by <br>
+                        <span
+                            style="font-size: 1.15rem; font-weight: 700; color: var(--accent); display: inline-block; margin-top: 4px;">
+                            Bramszs.Visual</span>
+                    </p>
+                    <p style="font-size: 0.95rem; margin-top: 8px; color: var(--text-muted); font-weight: 400;">
+                        Version <br>
+                        <span
+                            style="font-size: 1.15rem; font-weight: 700; color: var(--accent); display: inline-block; margin-top: 4px;">
+                            1.5.1</span>
+                    </p>
+                    Inspired By Gevan Putra Yudhistira
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button id="btn-save-settings" class="btn-submit">Apply Configuration</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Logika Frontend -->
+    <script>
+        let currentSchedules = [];
+
+        async function fetchSettings() {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                document.getElementById('setting-ip').value = data.ip;
+                document.getElementById('setting-port').value = data.port;
+                document.getElementById('setting-autostart').checked = data.autostart || false;
+            } catch (e) { }
+        }
+
+        async function fetchSchedules() {
+            try {
+                const res = await fetch('/api/schedule');
+                currentSchedules = await res.json();
+                renderTable();
+            } catch (e) { }
+        }
+
+        async function checkUpdate() {
+            try {
+                const res = await fetch('/api/check-update');
+                const data = await res.json();
+                if (data.update_available) {
+                    const banner = document.getElementById('update-banner');
+                    banner.classList.remove('hidden');
+                    document.getElementById('update-version').innerText = data.latest_version;
+                    document.getElementById('update-url').href = data.url;
+                }
+            } catch (e) { }
+        }
+
+        async function checkConnection() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                const dot = document.getElementById('connection-dot');
+                const text = document.getElementById('connection-text');
+
+                if (data.status === 'connected') {
+                    dot.className = 'dot connected';
+                    text.innerText = 'Connected';
+                } else {
+                    dot.className = 'dot disconnected';
+                    text.innerText = 'Disc (Timeout)';
+                }
+            } catch (e) {
+                const dot = document.getElementById('connection-dot');
+                const text = document.getElementById('connection-text');
+                dot.className = 'dot disconnected';
+                text.innerText = 'Offline/Error';
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('schedule-list');
+            tbody.innerHTML = '';
+
+            currentSchedules.sort((a, b) => a.time.localeCompare(b.time));
+
+            currentSchedules.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="col-time">${item.time}</td>
+                    <td style="text-align: center; color: var(--accent); font-weight: 600;">${item.layer}</td>
+                    <td style="text-align: center; color: var(--accent); font-weight: 600;">${item.column}</td>
+                    <td style="text-align: right;"><button class="btn-delete" onclick="removeSchedule(${index})">Del</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function removeSchedule(index) {
+            currentSchedules.splice(index, 1);
+            renderTable();
+            await autoSave();
+        }
+
+        async function autoSave() {
+            try {
+                await fetch('/api/schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentSchedules)
+                });
+            } catch (e) { }
+        }
+
+        // ------------------
+        // MODAL ADD SCHEDULE
+        // ------------------
+        const addModal = document.getElementById('add-modal');
+        document.getElementById('btn-open-add').addEventListener('click', () => {
+            addModal.classList.remove('hidden');
+            setTimeout(() => { addModal.style.opacity = '1'; }, 10);
+
+            document.getElementById('input-time').value = '';
+            document.getElementById('input-layer').value = '';
+            document.getElementById('input-column').value = '';
+            setTimeout(() => { document.getElementById('input-time').focus(); }, 300);
+        });
+
+        document.getElementById('btn-close-add').addEventListener('click', closeAddModal);
+        addModal.addEventListener('click', (e) => {
+            if (e.target === addModal) closeAddModal();
+        });
+
+        function closeAddModal() {
+            addModal.style.opacity = '0';
+            setTimeout(() => { addModal.classList.add('hidden'); }, 300);
+        }
+
+        document.getElementById('schedule-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const time = document.getElementById('input-time').value;
+            const layer = parseInt(document.getElementById('input-layer').value);
+            const column = parseInt(document.getElementById('input-column').value);
+
+            currentSchedules.push({ time, layer, column });
+            renderTable();
+            closeAddModal();
+            autoSave();
+        });
+
+        // ------------------
+        // MODAL SETTINGS
+        // ------------------
+        const settingsModal = document.getElementById('settings-modal');
+        document.getElementById('btn-open-settings').addEventListener('click', () => {
+            fetchSettings();
+            settingsModal.classList.remove('hidden');
+            setTimeout(() => { settingsModal.style.opacity = '1'; }, 10);
+        });
+
+        document.getElementById('btn-close-settings').addEventListener('click', closeSettingsModal);
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) closeSettingsModal();
+        });
+
+        function closeSettingsModal() {
+            settingsModal.style.opacity = '0';
+            setTimeout(() => { settingsModal.classList.add('hidden'); }, 300);
+        }
+
+        document.getElementById('btn-save-settings').addEventListener('click', async () => {
+            const ip = document.getElementById('setting-ip').value;
+            const port = document.getElementById('setting-port').value;
+            const autostart = document.getElementById('setting-autostart').checked;
+            const btn = document.getElementById('btn-save-settings');
+            const ogText = btn.innerText;
+            btn.innerText = 'Applying...';
+            try {
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip, port, autostart })
+                });
+                closeSettingsModal();
+                btn.innerText = ogText;
+                checkConnection();
+            } catch (e) { }
+        });
+
+        fetchSettings();
+        fetchSchedules();
+        checkConnection();
+        checkUpdate(); // Cek Rilis GitHub sekali saat boot
+        
+        setInterval(() => {
+            checkConnection();
+            fetchSchedules(); // Auto Refresh Table untuk menampilkan status real job terbaru (bila job terhapus krn tereksekusi)
+        }, 3000);
+    </script>
+</body>
+
+</html>
