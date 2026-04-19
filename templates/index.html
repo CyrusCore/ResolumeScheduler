@@ -145,6 +145,17 @@
                     <div id="update-result" style="margin-top: 10px; font-size: 0.85rem; text-align: center; min-height: 20px;"></div>
                 </div>
 
+                <!-- THEME SELECTOR -->
+                <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--glass-border);">
+                    <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500; display: block; margin-bottom: 12px;">Accent Theme</label>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button class="theme-dot" data-theme="blue"   title="Blue"   style="background: #38bdf8;"></button>
+                        <button class="theme-dot" data-theme="pink"   title="Pink"   style="background: #f472b6;"></button>
+                        <button class="theme-dot" data-theme="orange" title="Orange" style="background: #fb923c;"></button>
+                        <button class="theme-dot" data-theme="purple" title="Purple" style="background: #a78bfa;"></button>
+                    </div>
+                </div>
+
                 <!-- BRAMSZS VISUAL CREDIT -->
                 <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--glass-border);">
                     <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">About App</label>
@@ -173,6 +184,46 @@
     <!-- Script Logika Frontend -->
     <script>
         let currentSchedules = [];
+
+        // ==================
+        // THEME SYSTEM
+        // ==================
+        const THEMES = {
+            blue:   { accent: '#38bdf8', glow: 'rgba(56, 189, 248, 0.3)',   bg: 'rgba(56, 189, 248, 0.08)' },
+            pink:   { accent: '#f472b6', glow: 'rgba(244, 114, 182, 0.3)',  bg: 'rgba(244, 114, 182, 0.08)' },
+            orange: { accent: '#fb923c', glow: 'rgba(251, 146, 60, 0.3)',   bg: 'rgba(251, 146, 60, 0.08)' },
+            purple: { accent: '#a78bfa', glow: 'rgba(167, 139, 250, 0.3)',  bg: 'rgba(167, 139, 250, 0.08)' },
+        };
+
+        function applyTheme(name) {
+            const t = THEMES[name];
+            if (!t) return;
+            const root = document.documentElement;
+            root.style.setProperty('--accent', t.accent);
+            root.style.setProperty('--accent-glow', t.glow);
+            // Update body gradient
+            document.body.style.backgroundImage = `
+                radial-gradient(circle at 0% 0%, ${t.bg}, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(52, 211, 153, 0.05), transparent 40%)`;
+            // Highlight active dot
+            document.querySelectorAll('.theme-dot').forEach(btn => {
+                btn.style.transform = 'scale(1)';
+                btn.style.boxShadow = 'none';
+                btn.style.outline = 'none';
+            });
+            const active = document.querySelector(`.theme-dot[data-theme="${name}"]`);
+            if (active) {
+                active.style.transform = 'scale(1.3)';
+                active.style.boxShadow = `0 0 12px ${t.glow}`;
+                active.style.outline = `2px solid ${t.accent}`;
+            }
+            localStorage.setItem('rs-theme', name);
+        }
+
+        // Apply saved theme on boot
+        const savedTheme = localStorage.getItem('rs-theme') || 'blue';
+        applyTheme(savedTheme);
+
 
         async function fetchSettings() {
             try {
@@ -352,6 +403,11 @@
         });
 
         document.getElementById('btn-check-update').addEventListener('click', checkUpdate);
+
+        // Wire theme dots
+        document.querySelectorAll('.theme-dot').forEach(btn => {
+            btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
+        });
 
         fetchSettings();
         fetchSchedules();

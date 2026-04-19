@@ -462,3 +462,18 @@ input:focus {
     color: #fff;
     text-shadow: 0 0 10px var(--accent-glow);
 }
+
+/* THEME DOTS */
+.theme-dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.25s ease, outline 0.2s ease;
+    flex-shrink: 0;
+}
+
+.theme-dot:hover {
+    transform: scale(1.2);
+}
