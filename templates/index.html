@@ -195,14 +195,27 @@
 
         async function checkUpdate() {
             try {
-                const res = await fetch('/api/check-update');
-                const data = await res.json();
-                // Only show banner if update_available AND version string is valid
-                if (data.update_available && data.latest_version && data.latest_version.trim() !== '') {
+                // Fetch both current version and github latest in parallel
+                const [updateRes, versionRes] = await Promise.all([
+                    fetch('/api/check-update'),
+                    fetch('/api/app-version')
+                ]);
+                const updateData = await updateRes.json();
+                const versionData = await versionRes.json();
+                const currentVersion = (versionData.version || '').trim();
+                const latestVersion = (updateData.latest_version || '').trim();
+
+                // Only show banner if: update_available=true, latestVersion is valid,
+                // AND it's genuinely different from current version
+                if (
+                    updateData.update_available &&
+                    latestVersion !== '' &&
+                    latestVersion !== currentVersion
+                ) {
                     const banner = document.getElementById('update-banner');
                     banner.classList.remove('hidden');
-                    document.getElementById('update-version').innerText = data.latest_version;
-                    if (data.url) document.getElementById('update-url').href = data.url;
+                    document.getElementById('update-version').innerText = latestVersion;
+                    if (updateData.url) document.getElementById('update-url').href = updateData.url;
                 }
             } catch (e) { }
         }

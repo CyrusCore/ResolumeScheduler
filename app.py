@@ -194,6 +194,11 @@ def manage_settings():
         except Exception as e:
             return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route('/api/app-version', methods=['GET'])
+def get_app_version():
+    """Mengembalikan versi aplikasi saat ini."""
+    return jsonify({"version": APP_VERSION.strip()})
+
 @app.route('/api/check-update', methods=['GET'])
 def check_update():
     """Mengecek rilisan terbaru di GitHub secara diam-diam."""
@@ -203,15 +208,16 @@ def check_update():
         if response.status_code == 200:
             data = response.json()
             latest_tag = data.get("tag_name", "")
-            # Sederhanakan format tag "v1.5.2" menjadi "1.5.2"
-            latest_version = latest_tag.replace("v", "")
+            latest_version = latest_tag.replace("v", "").strip()
+            current_version = APP_VERSION.strip()
             
-            if latest_version and latest_version != APP_VERSION:
+            if latest_version and latest_version != current_version:
                 return jsonify({
                     "update_available": True,
                     "latest_version": latest_version,
+                    "current_version": current_version,
                     "url": data.get("html_url"),
-                    "notes": data.get("body", "Pembaruan minor/major baru telah dirilis.")
+                    "notes": data.get("body", "")
                 })
         return jsonify({"update_available": False})
     except Exception as e:
