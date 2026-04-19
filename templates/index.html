@@ -12,15 +12,6 @@
 <body>
     <div class="glass-container">
 
-        <!-- UPDATE NOTIFICATION BANNER -->
-        <div id="update-banner" class="hidden" style="background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent); padding: 14px 22px; border-radius: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15); transition: opacity 0.5s ease;">
-            <div>
-                <strong style="color: var(--accent); display: block; margin-bottom: 4px; font-size: 1.05rem;">&#x2728; Update Available: v<span id="update-version"></span></strong>
-                <span style="font-size: 0.85rem; color: var(--text-main);">A new version of Resolume Automator is ready!</span>
-            </div>
-            <a id="update-url" href="#" target="_blank" class="nav-btn btn-accent" style="text-decoration: none; padding: 8px 18px; font-size: 0.9rem;">Download</a>
-        </div>
-
         <header>
             <div class="header-title">
                 <h1>Resolume Automator</h1>
@@ -146,6 +137,14 @@
                         app when Windows wakes up</label>
                 </div>
 
+                <!-- CHECK FOR UPDATES -->
+                <div style="margin-top: 1rem;">
+                    <button id="btn-check-update" class="btn-submit" style="background: transparent; color: var(--accent); border: 1px solid rgba(56,189,248,0.3); font-size: 0.85rem; padding: 10px; width: 100%;">
+                        &#x1F50D; Check for Updates
+                    </button>
+                    <div id="update-result" style="margin-top: 10px; font-size: 0.85rem; text-align: center; min-height: 20px;"></div>
+                </div>
+
                 <!-- BRAMSZS VISUAL CREDIT -->
                 <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--glass-border);">
                     <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">About App</label>
@@ -194,8 +193,12 @@
         }
 
         async function checkUpdate() {
+            const btn = document.getElementById('btn-check-update');
+            const resultDiv = document.getElementById('update-result');
+            if (!btn) return;
+            btn.innerText = 'Checking...';
+            btn.disabled = true;
             try {
-                // Fetch both current version and github latest in parallel
                 const [updateRes, versionRes] = await Promise.all([
                     fetch('/api/check-update'),
                     fetch('/api/app-version')
@@ -205,19 +208,16 @@
                 const currentVersion = (versionData.version || '').trim();
                 const latestVersion = (updateData.latest_version || '').trim();
 
-                // Only show banner if: update_available=true, latestVersion is valid,
-                // AND it's genuinely different from current version
-                if (
-                    updateData.update_available &&
-                    latestVersion !== '' &&
-                    latestVersion !== currentVersion
-                ) {
-                    const banner = document.getElementById('update-banner');
-                    banner.classList.remove('hidden');
-                    document.getElementById('update-version').innerText = latestVersion;
-                    if (updateData.url) document.getElementById('update-url').href = updateData.url;
+                if (updateData.update_available && latestVersion && latestVersion !== currentVersion) {
+                    resultDiv.innerHTML = `&#x2728; <strong style="color:var(--accent)">v${latestVersion} available!</strong> <a href="${updateData.url}" target="_blank" style="color:var(--accent)">Download</a>`;
+                } else {
+                    resultDiv.innerHTML = `<span style="color:var(--success)">&#x2713; You are on the latest version (v${currentVersion})</span>`;
                 }
-            } catch (e) { }
+            } catch (e) {
+                resultDiv.innerHTML = `<span style="color:var(--text-muted)">Could not check for updates.</span>`;
+            }
+            btn.innerText = '\uD83D\uDD0D Check for Updates';
+            btn.disabled = false;
         }
 
         async function checkConnection() {
@@ -351,14 +351,15 @@
             } catch (e) { }
         });
 
+        document.getElementById('btn-check-update').addEventListener('click', checkUpdate);
+
         fetchSettings();
         fetchSchedules();
         checkConnection();
-        checkUpdate(); // Cek Rilis GitHub sekali saat boot
-        
+        // Update check is now manual — click button in Settings
         setInterval(() => {
             checkConnection();
-            fetchSchedules(); // Auto Refresh Table untuk menampilkan status real job terbaru (bila job terhapus krn tereksekusi)
+            fetchSchedules();
         }, 3000);
     </script>
 </body>
