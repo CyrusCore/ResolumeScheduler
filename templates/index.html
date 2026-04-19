@@ -195,7 +195,7 @@
             purple: { accent: '#a78bfa', glow: 'rgba(167, 139, 250, 0.3)',  bg: 'rgba(167, 139, 250, 0.08)' },
         };
 
-        function applyTheme(name) {
+        function applyTheme(name, save = true) {
             const t = THEMES[name];
             if (!t) return;
             const root = document.documentElement;
@@ -218,20 +218,37 @@
                 active.style.outline = `2px solid ${t.accent}`;
             }
             localStorage.setItem('rs-theme', name);
+            // Persist to settings.json
+            if (save) {
+                fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ..._lastSettings, theme: name })
+                }).catch(() => {});
+            }
         }
 
-        // Apply saved theme on boot
+        // Track last known settings to merge theme into them
+        let _lastSettings = { ip: '127.0.0.1', port: '8080', autostart: false, theme: 'blue' };
+
+        // Apply saved theme on boot (from localStorage as fast fallback)
         const savedTheme = localStorage.getItem('rs-theme') || 'blue';
-        applyTheme(savedTheme);
+        applyTheme(savedTheme, false);
 
 
         async function fetchSettings() {
             try {
                 const res = await fetch('/api/settings');
                 const data = await res.json();
+                _lastSettings = data;
                 document.getElementById('setting-ip').value = data.ip;
                 document.getElementById('setting-port').value = data.port;
                 document.getElementById('setting-autostart').checked = data.autostart || false;
+                // Apply theme from settings.json (overrides localStorage)
+                if (data.theme) {
+                    applyTheme(data.theme, false);
+                    localStorage.setItem('rs-theme', data.theme);
+                }
             } catch (e) { }
         }
 

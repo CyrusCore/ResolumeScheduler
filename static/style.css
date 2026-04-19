@@ -298,12 +298,10 @@ tbody tr:hover {
     -webkit-backdrop-filter: blur(8px);
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    padding: 1.5rem 1rem;
+    align-items: center;
     z-index: 1000;
     opacity: 0;
     transition: opacity 0.3s ease;
-    overflow-y: auto;
 }
 
 .modal-overlay.hidden {
@@ -313,8 +311,6 @@ tbody tr:hover {
 .modal-box {
     width: 90%;
     max-width: 420px;
-    max-height: calc(100vh - 3rem);
-    overflow-y: auto;
     background: #0f0f13;
     border: 1px solid var(--glass-border);
     border-radius: 20px;
@@ -322,8 +318,6 @@ tbody tr:hover {
     box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);
     transform: translateY(10px) scale(0.98);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.1) transparent;
 }
 
 .modal-overlay:not(.hidden) .modal-box {

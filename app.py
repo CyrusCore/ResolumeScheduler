@@ -233,7 +233,7 @@ if __name__ == '__main__':
         title='Resolume Auto-Trigger', 
         url=app,
         width=520, 
-        height=800, 
+        height=960, 
         background_color='#09090b'
     )
     
