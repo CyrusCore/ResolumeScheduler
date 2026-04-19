@@ -25,7 +25,7 @@ app = Flask(__name__,
 # ==========================================
 # KONFIGURASI VERSI & GITHUB REPO
 # ==========================================
-APP_VERSION = "1.7.0"
+APP_VERSION = "1.7.1"
 # Format Repo Target: "username/repository-name"
 GITHUB_REPO = "CyrusCore/ResolumeScheduler"
 
@@ -126,29 +126,6 @@ def heartbeat_worker():
         resolume_health = new_health
         time.sleep(5)
 
-def fetch_clip_duration(layer_index, clip_index):
-    """Mendapatkan durasi klip (dalam detik) dari metadata Resolume API."""
-    settings = load_settings()
-    servers = settings.get("servers", [])
-    
-    # Cari server pertama yang aktif/online
-    for srv in servers:
-        if not srv.get("enabled", True): continue
-        try:
-            url = f"http://{srv['ip']}:{srv['port']}/api/v1/composition/layers/{layer_index}/clips/{clip_index}"
-            response = requests.get(url, timeout=2)
-            if response.status_code == 200:
-                data = response.json()
-                # Mencari durasi di dalam objek transport
-                transport = data.get("transport", {})
-                duration_obj = transport.get("duration", {})
-                duration = duration_obj.get("value")
-                
-                if duration and float(duration) > 0:
-                    return float(duration)
-        except:
-            continue
-    return None
 
 def trigger_clip(layer_index, clip_index, target_time=None, item_id=None, is_follow_up=False):
     """Memicu klip ke SEMUA server Resolume (Broadcast Sync)."""
@@ -181,56 +158,47 @@ def trigger_clip(layer_index, clip_index, target_time=None, item_id=None, is_fol
 
     # Cari data jadwal untuk handling duration/repeat
     try:
+        # Handling schedule removal/persistence
+        data = []
         with open(SCHEDULE_FILE, 'r') as f:
-            data = json.load(f)
+            current_data = json.load(f)
             
-        new_data = []
         found_item = None
+        new_data = []
         
-        for item in data:
-            # Match item (by time, layer, column as fallback or use a UUID if we had one)
+        for item in current_data:
             is_match = False
+            # Matching logic (using time, layer, column)
             if target_time and str(item.get('time')) == str(target_time) and int(item.get('layer')) == int(layer_index) and int(item.get('column')) == int(clip_index):
                 is_match = True
             
             if is_match and not found_item:
                 found_item = item
-                # Jika repeat: true, simpan kembali
+                # Jika repeat atau ada 'next clip' yang BELUM dipicu (is_follow_up=False)
+                # maka simpan kembali agar tetap tampil di UI
+                has_chain = item.get('next_layer') and item.get('next_column')
+                
                 if item.get('repeat', False):
                     new_data.append(item)
-                # Jika tidak repeat, jangan masukkan ke new_data (auto-delete)
+                elif has_chain and not is_follow_up:
+                    # Jangan hapus jika ini trigger pertama dari sebuah chain
+                    new_data.append(item)
+                # Jika is_follow_up=True dan tidak repeat, otomatis terhapus (tidak masuk new_data)
             else:
                 new_data.append(item)
                 
-        # Simpan perubahan ke schedule.json
         with open(SCHEDULE_FILE, 'w') as f:
             json.dump(new_data, f, indent=4)
             
-        # Handling sub-sequent trigger (Duration)
-        # Jika duration == 0, itu berarti "Auto Metadata Sync"
-        duration_val = found_item.get('duration')
-        if found_item and (duration_val is not None):
+        # Handling sub-sequent trigger (Duration Chaining)
+        if found_item and not is_follow_up:
             next_l = found_item.get('next_layer')
             next_c = found_item.get('next_column')
+            duration_sec = found_item.get('duration', 0)
             
-            if next_l and next_c:
-                duration_sec = 0
-                if float(duration_val) > 0:
-                    # Manual duration (minutes to seconds)
-                    duration_sec = int(duration_val) * 60
-                else:
-                    # Auto duration from metadata
-                    print(f"[{datetime.now().strftime('%H:%M:%S')}] AUTO-SYNC -> Fetching duration for Layer {layer_index} Clip {clip_index}...")
-                    detected = fetch_clip_duration(layer_index, clip_index)
-                    if detected:
-                        duration_sec = detected
-                        print(f"[{datetime.now().strftime('%H:%M:%S')}] DETECTED -> {duration_sec:.2f} seconds")
-                    else:
-                        print(f"[{datetime.now().strftime('%H:%M:%S')}] WARNING -> Could not detect duration. Defaulting to 1s.")
-                        duration_sec = 1 # Fallback safety
-                
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] QUEUED -> Next Clip in {duration_sec:.1f}s")
-                threading.Timer(duration_sec, trigger_clip, args=[next_l, next_c, None, None, True]).start()
+            if next_l and next_c and duration_sec >= 0:
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] QUEUED -> Next Clip in {duration_sec}s")
+                threading.Timer(float(duration_sec), trigger_clip, args=[next_l, next_c, None, None, True]).start()
 
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] ERROR handling schedule post-trigger: {e}")

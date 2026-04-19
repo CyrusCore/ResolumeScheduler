@@ -123,10 +123,17 @@
                         </div>
                         
                         <div id="duration-fields" class="hidden" style="margin-top: 12px; padding-left: 28px;">
-                            <div class="input-group">
-                                <label>Duration (minutes)</label>
-                                <input type="number" id="input-duration" min="0" placeholder="Set 0 for Auto-Sync">
-                                <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">* 0 = detect length from Resolume</p>
+                            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 8px;">Wait Time (H:M:S)</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                                <div class="input-group" style="margin: 0;">
+                                    <input type="number" id="input-dur-h" min="0" value="0" placeholder="HH" style="text-align: center;">
+                                </div>
+                                <div class="input-group" style="margin: 0;">
+                                    <input type="number" id="input-dur-m" min="0" max="59" value="0" placeholder="MM" style="text-align: center;">
+                                </div>
+                                <div class="input-group" style="margin: 0;">
+                                    <input type="number" id="input-dur-s" min="0" max="59" value="0" placeholder="SS" style="text-align: center;">
+                                </div>
                             </div>
                             <div class="input-grid">
                                 <div class="input-group">
@@ -231,12 +238,51 @@
                         <span
                             style="font-size: 1.15rem; font-weight: 700; color: var(--accent); display: inline-block; margin-top: 4px;">
                             {{ version }}</span>
+                        <a href="#" id="link-changelog" style="display: block; font-size: 0.75rem; color: var(--accent); margin-top: 6px; text-decoration: underline;">View Changelog</a>
                     </p>
                 </div>
 
             </div>
             <div class="modal-footer">
                 <button id="btn-save-settings" class="btn-submit">Apply Configuration</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MODAL CHANGELOG -->
+    <div id="changelog-modal" class="modal-overlay hidden">
+        <div class="modal-box" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>What's New</h2>
+                <button id="btn-close-changelog" class="btn-close" style="color: var(--text-muted); padding: 4px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 480px; overflow-y: auto; padding-right: 15px;">
+                <div class="changelog-item" style="margin-bottom: 24px;">
+                    <h3 style="color: var(--accent); font-size: 1.15rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        v1.7.0 <span style="font-size: 0.75rem; background: var(--accent-glow); padding: 2px 8px; border-radius: 20px;">Current</span>
+                    </h3>
+                    <ul style="padding-left: 18px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.7; list-style-type: none;">
+                        <li style="margin-bottom: 8px;">🚀 <strong>Refactored Chaining</strong>: Precise manual H:M:S duration input for perfect timing gaps.</li>
+                        <li style="margin-bottom: 8px;">👁️ <strong>Task Persistence</strong>: Chained tasks now stay visible in the list until the full sequence completes.</li>
+                        <li style="margin-bottom: 8px;">📡 <strong>Multi-Server Sync</strong>: Broadcast mode for physical redundancy (Main & Backup PCs).</li>
+                        <li style="margin-bottom: 8px;">📱 <strong>Enhanced Mobile Access</strong>: Simplified dashboard URL and mobile-friendly table layout.</li>
+                        <li style="margin-bottom: 8px;">🎨 <strong>UI Polish</strong>: Unified header controls and cleaner settings modal without scrollbars.</li>
+                    </ul>
+                </div>
+                <div class="changelog-item" style="opacity: 0.6;">
+                    <h3 style="color: var(--text-main); font-size: 1rem; margin-bottom: 8px;">v1.6.x</h3>
+                    <ul style="padding-left: 18px; color: var(--text-muted); font-size: 0.85rem; line-height: 1.6;">
+                        <li>Initial Multi-Server implementation.</li>
+                        <li>Persistent theme settings and auto-update checks.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer" style="margin-top: 15px; border-top: 1px solid var(--glass-border); padding-top: 15px;">
+                <button onclick="document.getElementById('btn-close-changelog').click()" class="btn-submit" style="width: 100%; opacity: 0.8;">Dismiss</button>
             </div>
         </div>
     </div>
@@ -440,6 +486,14 @@
             } catch (e) { }
         }
 
+        function formatDuration(totalSeconds) {
+            if (!totalSeconds || totalSeconds <= 0) return '-';
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
         function renderTable() {
             const tbody = document.getElementById('schedule-list');
             tbody.innerHTML = '';
@@ -451,9 +505,8 @@
                 const repeatIcon = item.repeat ? '&#x21BB;' : '&#x2715;';
                 const repeatColor = item.repeat ? 'var(--accent)' : 'var(--text-muted)';
                 
-                const durationText = (item.duration && parseInt(item.duration) > 0) 
-                    ? `${item.duration}m` 
-                    : (item.duration == 0 && item.next_layer ? 'Auto Sync' : '-');
+                const hasNext = item.next_layer && item.next_column;
+                const durationText = hasNext ? formatDuration(item.duration) : '-';
 
                 tr.innerHTML = `
                     <td class="col-time" data-label="Time">
@@ -525,7 +578,11 @@
             let next_column = 0;
             
             if (hasNext) {
-                duration = parseInt(document.getElementById('input-duration').value) || 0;
+                const h = parseInt(document.getElementById('input-dur-h').value) || 0;
+                const m = parseInt(document.getElementById('input-dur-m').value) || 0;
+                const s = parseInt(document.getElementById('input-dur-s').value) || 0;
+                duration = (h * 3600) + (m * 60) + s;
+                
                 next_layer = parseInt(document.getElementById('input-next-layer').value) || 0;
                 next_column = parseInt(document.getElementById('input-next-column').value) || 0;
             }
@@ -623,6 +680,19 @@
             configServers.splice(idx, 1);
             renderServerList();
         }
+
+        document.getElementById('link-changelog').addEventListener('click', (e) => {
+            e.preventDefault();
+            const modal = document.getElementById('changelog-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.style.opacity = '1'; }, 10);
+        });
+
+        document.getElementById('btn-close-changelog').addEventListener('click', () => {
+            const modal = document.getElementById('changelog-modal');
+            modal.style.opacity = '0';
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
+        });
 
         async function saveSettings() {
             const autostart = document.getElementById('setting-autostart').checked;
